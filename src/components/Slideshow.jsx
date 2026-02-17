@@ -21,7 +21,7 @@ const Slideshow = ({ interval = 10000 }) => {
                 // We could filter by source status if needed, but source_items should only have valid ones?
                 // Actually, source_items exist if they were scraped.
 
-                const { data, error } = await supabase
+                const { data } = await supabase
                     .from('source_items')
                     .select('*')
                     .order('captured_at', { ascending: false })
@@ -64,8 +64,45 @@ const Slideshow = ({ interval = 10000 }) => {
         };
 
         loadPhotos();
+    }, []);
 
-        // Subscribe to changes? Maybe overkill for now.
+    // Heartbeat: Check for stale sources every 6 hours (and on mount)
+    useEffect(() => {
+        const checkHeartbeat = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) return;
+
+            const { data: sources } = await supabase
+                .from('sources')
+                .select('id, last_scraped_at, status')
+                .eq('user_id', session.user.id);
+
+            if (!sources) return;
+
+            const now = new Date();
+            const STALE_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+            for (const source of sources) {
+                const lastScraped = source.last_scraped_at ? new Date(source.last_scraped_at) : new Date(0);
+                const isStale = (now - lastScraped) > STALE_THRESHOLD_MS;
+
+                if (isStale && source.status !== 'error') {
+                    console.log(`[Heartbeat] Triggering sync for source ${source.id}`);
+                    // Fire and forget - don't await response to avoid blocking UI
+                    supabase.functions.invoke('source-manager', {
+                        body: { sourceId: source.id }
+                    });
+                }
+            }
+        };
+
+        // Initial check
+        checkHeartbeat();
+
+        // Check every hour
+        const heartbeatInterval = setInterval(checkHeartbeat, 60 * 60 * 1000);
+
+        return () => clearInterval(heartbeatInterval);
     }, []);
 
     // Helper to check if an index is within the "window" of [current - 1, current, current + 1]
