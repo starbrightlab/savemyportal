@@ -173,7 +173,7 @@ const Settings = () => {
                 if (response.ok) {
                     const data = await response.json();
                     // Log the full response to see the structure
-                    console.log("Polling Response:", data);
+                    console.log("Polling Response:", JSON.stringify(data, null, 2));
 
                     if (data.mediaItemsSet && data.mediaItemsSet.mediaItems) {
                         // User has selected items!
