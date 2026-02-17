@@ -3,6 +3,8 @@ import React, { useState, useRef } from 'react';
 import HeartbeatVideo from './HeartbeatVideo';
 
 const Layout = ({ children }) => {
+    const [hasStarted, setHasStarted] = useState(false);
+    const videoRef = useRef(null);
     const [logs, setLogs] = useState([]);
 
     const addLog = (msg) => {
