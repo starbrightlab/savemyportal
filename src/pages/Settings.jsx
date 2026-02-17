@@ -40,8 +40,8 @@ const Settings = () => {
             provider: 'google',
             options: {
                 redirectTo: window.location.origin,
-                // Request Picker API scope
-                scopes: 'email profile https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+                // Use FULL URLs for all scopes and include openid to match debug script exactly
+                scopes: 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent'
@@ -69,8 +69,12 @@ const Settings = () => {
             console.log("Project Number (from Token):", projectNumber);
 
             if (data.scope) {
-                const hasPhotosScope = data.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly');
-                setError(`Project #${projectNumber} | Has Picker Scope: ${hasPhotosScope ? '✅ YES' : '❌ NO'} | Scopes: ${data.scope}`);
+                const hasPickerScope = data.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly');
+                const message = `Project #${projectNumber} | Has Picker Scope: ${hasPickerScope ? '✅ YES' : '❌ NO'}`;
+                setError(message);
+                console.log(message);
+                // Also show the full scope list for debugging
+                console.log("Full Scopes:", data.scope);
             } else {
                 setError(`Token check failed: ${JSON.stringify(data)}`);
             }
@@ -104,6 +108,23 @@ const Settings = () => {
         try {
             setError(null);
             console.log("Creating Picker Session...");
+
+            // --- Pre-flight Check: Verify Scopes ---
+            // We inspect the token first to ensure Supabase actually gave us the right scope.
+            // This prevents the confusing 403 error from Google's API limit.
+            try {
+                const tokenRes = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${session.provider_token}`);
+                const tokenData = await tokenRes.json();
+                if (!tokenData.scope || !tokenData.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly')) {
+                    const msg = `MISSING SCOPE. Got: ${tokenData.scope}`;
+                    console.error(msg);
+                    setError("Authenication Error: You are missing the 'photospicker' permission. Please Sign Out and Sign In again.");
+                    return;
+                }
+            } catch (scopeErr) {
+                console.warn("Could not verify scopes before request:", scopeErr);
+            }
+            // ----------------------------------------
 
             const response = await fetch('https://photospicker.googleapis.com/v1/sessions', {
                 method: 'POST',
