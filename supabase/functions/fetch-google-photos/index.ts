@@ -21,7 +21,8 @@ serve(async (req) => {
 
         console.log(`Fetching media items for session: ${sessionId}`)
 
-        const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems?pageSize=100`, {
+        // Correct Endpoint: https://photospicker.googleapis.com/v1/mediaItems?sessionId={sessionId}
+        const response = await fetch(`https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}&pageSize=100`, {
             headers: {
                 'Authorization': `Bearer ${providerToken}`
             }
