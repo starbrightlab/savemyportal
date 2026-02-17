@@ -1,24 +1,25 @@
 
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-// import Slideshow from './components/Slideshow';
+import Dashboard from './pages/Dashboard';
+import Settings from './pages/Settings';
 import Slideshow from './components/Slideshow';
-import DualVideoTest from './components/DualVideoTest';
+// import DualVideoTest from './components/DualVideoTest';
 import './index.css';
 
 function App() {
   return (
-    <Layout>
-      {/* <Slideshow interval={10000} /> */}
-
-      {/* EXPERIMENT: Uncomment to test dual video hardware support */}
-      <DualVideoTest />
-
-      {/* <div className="center-content">
-          <h1>SaveMyPortal</h1>
-          <p>Baseline Test: Heartbeat Only</p>
-      </div> */}
-    </Layout>
+    <Router>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/slideshow" element={<Slideshow />} />
+          <Route path="/settings" element={<Settings />} />
+          {/* <Route path="/test" element={<DualVideoTest />} /> */}
+        </Routes>
+      </Layout>
+    </Router>
   );
 }
 
