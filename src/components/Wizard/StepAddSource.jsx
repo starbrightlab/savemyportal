@@ -7,6 +7,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [status, setStatus] = useState('idle'); // idle, validating, linking, success
+    const [showHelp, setShowHelp] = useState(false);
 
     const handleAddSource = async (e) => {
         e.preventDefault();
@@ -43,9 +44,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
                 if (linkError.code !== '23505') throw linkError;
             }
 
-            // 3. Trigger Initial Scrape (Optional, client-side trigger)
-            // We can invoke the function or just let the heartbeat pick it up.
-            // For better UX, let's invoke it.
+            // 3. Trigger Initial Scrape
             setStatus('syncing');
             await supabase.functions.invoke('source-manager', {
                 body: { sourceId: sourceData.id }
@@ -66,34 +65,44 @@ const StepAddSource = ({ feedId, onComplete }) => {
     };
 
     return (
-        <div className="flex flex-col items-center space-y-6 w-full max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-white">Add Your First Album</h2>
-            <p className="text-gray-300 text-center">
-                Paste a public link to a shared album.
-            </p>
+        <div className="flex flex-col items-center space-y-6 w-full max-w-lg mx-auto animate-fadeIn">
+            <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold text-white">Add Photos</h2>
+                <p className="text-gray-400">
+                    Connect a shared album to start your slideshow.
+                </p>
+            </div>
 
             {/* Tabs */}
-            <div className="flex space-x-4 bg-gray-800 p-1 rounded-lg">
+            <div className="bg-gray-800/50 p-1 rounded-xl flex w-full">
                 <button
                     onClick={() => setActiveTab('google')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'google' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'google'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                         }`}
                 >
-                    Google Photos
+                    <span className="flex items-center justify-center gap-2">
+                        Google Photos
+                    </span>
                 </button>
                 <button
                     onClick={() => setActiveTab('icloud')}
-                    className={`px-4 py-2 rounded-md font-medium transition-colors ${activeTab === 'icloud' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${activeTab === 'icloud'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                         }`}
                 >
-                    iCloud Shared Album
+                    <span className="flex items-center justify-center gap-2">
+                        iCloud Shared
+                    </span>
                 </button>
             </div>
 
-            <form onSubmit={handleAddSource} className="w-full space-y-4">
+            <form onSubmit={handleAddSource} className="w-full space-y-6">
                 <div>
-                    <label htmlFor="url" className="block text-sm font-medium text-gray-300 mb-1">
-                        {activeTab === 'google' ? 'Google Photos Album Link' : 'iCloud Shared Album Link'}
+                    <label htmlFor="url" className="block text-sm font-medium text-blue-400 mb-2 uppercase tracking-wider">
+                        Album Link
                     </label>
                     <input
                         type="url"
@@ -101,21 +110,62 @@ const StepAddSource = ({ feedId, onComplete }) => {
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="https://..."
-                        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                        Make sure the album is public/shared via link.
-                    </p>
+                </div>
+
+                {/* Instructions Accordion */}
+                <div className="border border-gray-700 rounded-xl overflow-hidden bg-gray-800/30">
+                    <button
+                        type="button"
+                        onClick={() => setShowHelp(!showHelp)}
+                        className="w-full px-5 py-3 flex items-center justify-between text-left text-sm font-medium text-gray-300 hover:bg-gray-800/50 transition-colors"
+                    >
+                        <span className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            How do I get the link?
+                        </span>
+                        <svg className={`w-4 h-4 transition-transform ${showHelp ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    {showHelp && (
+                        <div className="px-5 py-4 bg-gray-900/50 border-t border-gray-700 text-sm text-gray-400 space-y-3 animate-fadeIn">
+                            {activeTab === 'google' ? (
+                                <ol className="list-decimal list-inside space-y-2">
+                                    <li>Open <strong>Google Photos</strong> and go to the album.</li>
+                                    <li>Click the <strong>Share</strong> icon (top right).</li>
+                                    <li>Click <strong>Create Link</strong>.</li>
+                                    <li>Copy the link and paste it above.</li>
+                                </ol>
+                            ) : (
+                                <ol className="list-decimal list-inside space-y-2">
+                                    <li>Open the <strong>Photos app</strong> on your iPhone/Mac.</li>
+                                    <li>Select the <strong>Shared Album</strong>.</li>
+                                    <li>Tap the <strong>People</strong> icon.</li>
+                                    <li>Turn on <strong>Public Website</strong>.</li>
+                                    <li>Tap <strong>Share Link</strong> and copy it.</li>
+                                </ol>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {error && (
-                    <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg border border-red-900/50">
+                    <div className="text-red-400 text-sm bg-red-900/20 p-4 rounded-xl border border-red-900/50 flex items-center gap-2">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         {error}
                     </div>
                 )}
 
                 {status !== 'idle' && status !== 'success' && (
-                    <div className="text-blue-400 text-sm text-center">
+                    <div className="flex items-center justify-center gap-2 text-blue-400 font-medium">
+                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-ping" />
                         {status === 'validating' && 'Saving source...'}
                         {status === 'linking' && 'Linking to feed...'}
                         {status === 'syncing' && 'Starting initial sync...'}
@@ -125,7 +175,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
                 <button
                     type="submit"
                     disabled={!url.trim() || isSubmitting}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-blue-500/20"
                 >
                     {isSubmitting ? 'Adding...' : 'Add Source & Finish'}
                 </button>
@@ -134,7 +184,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
             <button
                 type="button"
                 onClick={onComplete}
-                className="text-gray-500 hover:text-gray-300 text-sm underline"
+                className="text-gray-500 hover:text-gray-300 text-sm hover:underline transition-colors"
             >
                 Skip for now
             </button>

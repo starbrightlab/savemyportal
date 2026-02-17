@@ -35,15 +35,17 @@ const StepCreateFeed = ({ onNext }) => {
     };
 
     return (
-        <div className="flex flex-col items-center space-y-6 w-full max-w-md mx-auto">
-            <h2 className="text-2xl font-bold text-white">Create Your First Feed</h2>
-            <p className="text-gray-300 text-center">
-                A "Feed" is a collection of photos that will play on your device. Give it a name like "Living Room" or "Grandma's Frame".
-            </p>
+        <div className="flex flex-col items-center space-y-8 w-full max-w-md mx-auto animate-fadeIn">
+            <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold text-white">Name Your Frame</h2>
+                <p className="text-gray-400">
+                    Give your collection a name like "Living Room" or "Grandma's Frame".
+                </p>
+            </div>
 
-            <form onSubmit={handleSubmit} className="w-full space-y-4">
+            <form onSubmit={handleSubmit} className="w-full space-y-6">
                 <div>
-                    <label htmlFor="feedName" className="block text-sm font-medium text-gray-300 mb-1">
+                    <label htmlFor="feedName" className="block text-sm font-medium text-blue-400 mb-2 uppercase tracking-wider">
                         Feed Name
                     </label>
                     <input
@@ -52,13 +54,16 @@ const StepCreateFeed = ({ onNext }) => {
                         value={feedName}
                         onChange={(e) => setFeedName(e.target.value)}
                         placeholder="e.g. Living Room"
-                        className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-lg"
                         autoFocus
                     />
                 </div>
 
                 {error && (
-                    <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg border border-red-900/50">
+                    <div className="text-red-400 text-sm bg-red-900/20 p-4 rounded-xl border border-red-900/50 flex items-center gap-2">
+                        <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         {error}
                     </div>
                 )}
@@ -66,9 +71,9 @@ const StepCreateFeed = ({ onNext }) => {
                 <button
                     type="submit"
                     disabled={!feedName.trim() || isSubmitting}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-blue-500/20"
                 >
-                    {isSubmitting ? 'Creating...' : 'Create Feed'}
+                    {isSubmitting ? 'Creating...' : 'Continue'}
                 </button>
             </form>
         </div>

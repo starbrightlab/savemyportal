@@ -5,10 +5,10 @@ import silentVideo from '../assets/silent.mp4';
 const HeartbeatVideo = forwardRef(({ onLog }, ref) => {
     const videoRef = useRef(null);
 
-    const log = (msg) => {
+    const log = React.useCallback((msg) => {
         console.log(msg);
         if (onLog) onLog(msg);
-    };
+    }, [onLog]);
 
     useImperativeHandle(ref, () => ({
         play: async () => {
@@ -36,11 +36,6 @@ const HeartbeatVideo = forwardRef(({ onLog }, ref) => {
             video.play().catch(e => log(`Restart failed: ${e.message}`));
         };
 
-        const onTimeUpdate = () => {
-            // Optional: Log every few seconds to prove it's alive? 
-            // Might be too noisy. Let's just log key events.
-        };
-
         video.addEventListener('pause', onPause);
         video.addEventListener('ended', onEnded);
 
@@ -57,7 +52,7 @@ const HeartbeatVideo = forwardRef(({ onLog }, ref) => {
             video.removeEventListener('ended', onEnded);
             clearInterval(checkInterval);
         };
-    }, [onLog]);
+    }, [onLog, log]);
 
 
     return (
