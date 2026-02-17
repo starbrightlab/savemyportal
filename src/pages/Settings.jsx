@@ -148,6 +148,9 @@ const Settings = () => {
                             <button onClick={fetchAlbums} style={{ ...btnStyle, background: '#10b981', width: '100%', marginBottom: 10 }}>
                                 🧪 Test: Fetch My Albums
                             </button>
+                            <button onClick={testUserInfo} style={{ ...btnStyle, background: '#3b82f6', width: '100%', marginBottom: 10 }}>
+                                👤 Test User API
+                            </button>
                             <button onClick={checkScopes} style={{ ...btnStyle, background: '#6366f1', width: '100%', marginBottom: 10 }}>
                                 🕵️ Debug Scopes
                             </button>
