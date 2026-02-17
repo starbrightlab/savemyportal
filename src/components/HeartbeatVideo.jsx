@@ -54,10 +54,9 @@ const HeartbeatVideo = forwardRef((props, ref) => {
                 width: '100vw',
                 height: '100vh',
                 objectFit: 'contain',
-                zIndex: 50, // Moved to Z-Index 50 (above Slideshow) to prevent Chrome background throttling
+                zIndex: 0,
                 pointerEvents: 'none',
-                background: 'transparent',
-                opacity: 0.001, // Force browser to render frame (prevents sleep) without affecting UI
+                background: 'black',
             }}
         />
     );

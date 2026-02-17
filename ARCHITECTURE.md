@@ -9,9 +9,8 @@ Through extensive testing, we discovered that the Portal's OS respects **active,
 **The Solution**:
 1.  **HeartbeatVideo**: A standard HTML5 `<video>` element plays a silent, looping MP4.
 2.  **User Initiation**: The user MUST manually tap the screen once to start playback. This registers a "trusted user gesture."
-3.  **Layering**: The video player is placed at `z-index: 50` (or greater) with `opacity: 0.001`. It must sit *above* the content layer.
-    - *Why?* Modern Chrome WebViews (Chrome 98+) aggressive power management will pause videos that are fully occluded (covered by other DOM elements). By placing it on top but practically invisible, we trick the browser into rendering it.
-4.  **Result**: The browser keeps the device awake because it believes a video is being watched.
+3.  **Layering**: The video player is placed at `z-index: 0`. The actual application UI (photos, clock, controls) is placed at `z-index: 10` or higher.
+4.  **Result**: The browser keeps the device awake because it believes a video is being watched, even though the video is visually obscured by the UI.
 
 ## Component Structure
 
