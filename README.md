@@ -10,10 +10,12 @@
 
 ## Getting Started
 
-1.  **Clone**: `git clone https://github.com/your-username/savemyportal.git`
+**Live Demo**: [savemyportal.netlify.app](https://savemyportal.netlify.app) (Run on your Portal!)
+
+1.  **Clone**: `git clone https://github.com/starbrightlab/savemyportal.git`
 2.  **Install**: `npm install`
 3.  **Run**: `npm run dev`
-4.  **Deploy**: Push to Cloudflare Pages, Vercel, or Netlify.
+
 
 ## The Wake Lock Magic
 This project relies on a specific technical implementation to keep the Portal awake. See [ARCHITECTURE.md](./ARCHITECTURE.md) for details on the "Heartbeat Video" strategy.

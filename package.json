@@ -1,7 +1,11 @@
 {
   "name": "savemyportal",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/starbrightlab/savemyportal"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
