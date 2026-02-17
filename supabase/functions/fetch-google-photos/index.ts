@@ -30,8 +30,9 @@ serve(async (req) => {
         if (!response.ok) {
             const errorText = await response.text()
             console.error("Google API Error:", errorText)
-            return new Response(JSON.stringify({ error: errorText }), {
-                status: response.status,
+            // Return 200 to prevent supabase-js from throwing, so we can read the error in frontend
+            return new Response(JSON.stringify({ error: `Google API Error (${response.status}): ${errorText}` }), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -44,8 +45,8 @@ serve(async (req) => {
 
     } catch (error) {
         console.error("Function Error:", error)
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
+        return new Response(JSON.stringify({ error: `Function Fatal Error: ${error.message}` }), {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
     }
