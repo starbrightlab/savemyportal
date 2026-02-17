@@ -40,10 +40,11 @@ const Settings = () => {
             provider: 'google',
             options: {
                 redirectTo: window.location.origin,
-                scopes: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+                // Request explicitly space-separated scopes
+                scopes: 'email profile https://www.googleapis.com/auth/photoslibrary.readonly',
                 queryParams: {
-                    access_type: 'offline', // Requests a refresh token (vital for long-term access)
-                    prompt: 'consent'       // Forces the consent screen to appear again
+                    access_type: 'offline',
+                    prompt: 'consent'
                 }
             }
         });
@@ -51,6 +52,25 @@ const Settings = () => {
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
+    };
+
+    const checkScopes = async () => {
+        if (!session?.provider_token) {
+            setError("No Access Token found.");
+            return;
+        }
+        try {
+            const res = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${session.provider_token}`);
+            const data = await res.json();
+            console.log("Token Info:", data);
+            if (data.scope) {
+                setError(`Current Scopes: ${data.scope}`);
+            } else {
+                setError(`Token check failed: ${JSON.stringify(data)}`);
+            }
+        } catch (e) {
+            setError(`Check failed: ${e.message}`);
+        }
     };
 
     const fetchAlbums = async () => {
@@ -107,8 +127,11 @@ const Settings = () => {
                             <button onClick={fetchAlbums} style={{ ...btnStyle, background: '#10b981', width: '100%', marginBottom: 10 }}>
                                 🧪 Test: Fetch My Albums
                             </button>
+                            <button onClick={checkScopes} style={{ ...btnStyle, background: '#6366f1', width: '100%', marginBottom: 10 }}>
+                                🕵️ Debug Scopes
+                            </button>
 
-                            {error && <p style={{ color: '#ef4444', fontSize: '0.9rem' }}>{error}</p>}
+                            {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', background: 'rgba(255,0,0,0.1)', padding: 10, borderRadius: 5, overflowWrap: 'break-word' }}>{error}</div>}
 
                             {albums.length > 0 && (
                                 <div style={{ textAlign: 'left', maxHeight: 200, overflowY: 'auto', background: '#111', padding: 10, borderRadius: 5 }}>
