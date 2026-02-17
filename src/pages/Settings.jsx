@@ -69,7 +69,8 @@ const Settings = () => {
             console.log("Project Number (from Token):", projectNumber);
 
             if (data.scope) {
-                setError(`Project #${projectNumber} | Scopes: ${data.scope.substring(0, 50)}...`);
+                const hasPhotosScope = data.scope.includes('https://www.googleapis.com/auth/photoslibrary.readonly');
+                setError(`Project #${projectNumber} | Has Photos Scope: ${hasPhotosScope ? '✅ YES' : '❌ NO'} | Scopes: ${data.scope}`);
             } else {
                 setError(`Token check failed: ${JSON.stringify(data)}`);
             }
