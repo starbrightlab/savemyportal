@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { fetchImageUrls } from "https://esm.sh/google-photos-album-image-url-fetch";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -33,6 +34,7 @@ serve(async (req) => {
         if (sourceError || !source) {
             throw new Error('Source not found')
         }
+
 
         console.log(`Processing source: ${source.type} - ${source.url}`)
 
@@ -93,77 +95,52 @@ serve(async (req) => {
 
 // --- Scraper Implementations ---
 
-
 async function scrapeGooglePhotos(url: string) {
-    console.log("Scraping Google Photos URL:", url);
+    console.log("Scraping Google Photos URL using library:", url);
 
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch Google Photos album: ${response.status}`);
-    }
-
-    const html = await response.text();
-
-    // Regex to extract the JSON data from the script tag
-    // We are looking for the callback that contains 'ds:0' which usually has the album data
-    const regex = /AF_initDataCallback\({key: 'ds:0', hash: '[^']*', data: (\[[\s\S]*?\]), sideChannel: {[^}]*}}\);/m;
-    const match = html.match(regex);
-
-    if (!match || !match[1]) {
-        console.warn("Could not find AF_initDataCallback with ds:0. Attempting fallback regex...");
-        // Fallback? Sometimes format varies. For now, throw error or return empty.
-        throw new Error("Failed to parse Google Photos data (ds:0 not found)");
-    }
-
-    const jsonString = match[1];
-    let data;
     try {
-        data = JSON.parse(jsonString);
-    } catch (e) {
-        throw new Error("Failed to parse JSON data from Google Photos");
-    }
+        const results = await fetchImageUrls(url);
 
-    // The data structure is deeply nested arrays.
-    // data[1] usually contains the list of items
-    const items = data[1];
-    if (!items || !Array.isArray(items)) {
-        console.log("No items found in album data");
-        return [];
-    }
+        if (!results || !Array.isArray(results)) {
+            console.warn("Library returned invalid data:", results);
+            return [];
+        }
 
-    const parsedItems = [];
+        console.log(`Library found ${results.length} items`);
 
-    for (const item of items) {
-        // Each item is an array.
-        // item[0] = id
-        // item[1] = [url, width, height]
-        // item[2] = [timestamp, ...]
+        // The library returns objects like:
+        // { url: string, width: number, height: number }
+        // We'll generate a consistent-ish external_id from the URL or random if needed.
+        // Google Photos URLs are long and unique enough.
 
-        if (!item[1]) continue; // skip if no media data
+        const parsedItems = results.map(item => {
+            // Generate a simple ID from the URL hash if possible, or random.
+            // item.url is unique per photo version, but stable enough for now.
+            // We can use a simple hash of the URL as external_id.
 
-        const id = item[0];
-        const baseUrl = item[1][0];
-        const width = item[1][1];
-        const height = item[1][2];
+            // Simple hash function for ID
+            let hash = 0;
+            for (let i = 0; i < item.url.length; i++) {
+                hash = ((hash << 5) - hash) + item.url.charCodeAt(i);
+                hash |= 0; // Convert to 32bit integer
+            }
+            const id = 'gp_' + Math.abs(hash).toString(16);
 
-        // Timestamp is sometimes in item[2] or item[5] or derived
-        // item[2] is usually creation timestamp (epoch ms)
-        const timestamp = item[2] ? new Date(item[2]) : new Date();
-
-        // Skip videos for now if they don't have a simple image representation (they usually do)
-        // We just want the image URL.
-
-        parsedItems.push({
-            external_id: id,
-            url: baseUrl, // This URL can be appended with =w...-h...
-            width: width,
-            height: height,
-            captured_at: timestamp
+            return {
+                external_id: id,
+                url: item.url,
+                width: item.width,
+                height: item.height,
+                captured_at: new Date() // Library doesn't return timestamp unfortunately
+            };
         });
-    }
 
-    console.log(`Found ${parsedItems.length} photos in Google Photos album.`);
-    return parsedItems;
+        return parsedItems;
+
+    } catch (e) {
+        console.error("Library Scraper Error:", e);
+        throw new Error(`Google Photos Library Error: ${e.message}`);
+    }
 }
 
 
@@ -196,10 +173,6 @@ async function scrapeICloud(url: string) {
     let response = await fetchStream(streamUrl);
 
     // Handle 330 Redirect (wrong partition)
-    // Note: fetch might handle 3xx automatically, but 330 is specific to iCloud non-standard? 
-    // Standard fetch follows redirects, but we might need to update the host info if it returns a specific JSON or header.
-    // iCloud often returns 330 with 'X-Apple-MMe-Host' header.
-
     if (response.status === 330 || (response.status >= 300 && response.status < 400)) {
         const newHost = response.headers.get('X-Apple-MMe-Host');
         if (newHost) {
@@ -224,31 +197,18 @@ async function scrapeICloud(url: string) {
     // Map to common format
     const parsedItems = photos.map((photo: any) => {
         // Find the best derivative (largest image)
-        // derivations is an object like { "2048": { ... }, "1024": { ... } }
         const derivatives = photo.derivatives;
         if (!derivatives) return null;
 
         // Sort derivatives by width (descending) to get best quality
-        // keys are strings, need to parse integers
         const bestKey = Object.keys(derivatives).sort((a, b) => parseInt(b) - parseInt(a))[0];
         const best = derivatives[bestKey];
 
         if (!best) return null;
 
-        // iCloud URLs are constructed from checksums and a base host usually provided in the metadata or we use a standard CDN.
-        // Actually, the 'url' in derivatives is usually a relative path or full URL.
-        // In newer API, it might be a dictionary with 'url', 'checksum', etc.
-        // If it's a relative URL, we need to construct it.
-        // The simplified API usually returns full URLs in some contexts, but let's check.
-        // Wait, the API returns `checksum` and `url`. If `url` is present, use it.
-        // If not, we might need to construct it using `https://${partition}-sharedstreams.icloud.com/${token}/sharedstreams/${checksum}`... 
-        // BUT usually the public webstream JSON has a `url` field in the derivative.
-
-        // Fallback: The API often returns a 'url' property in the derivative object.
-
         return {
             external_id: photo.photoGuid,
-            url: best.url, // Assuming valid URL. If relative, needs base.
+            url: best.url,
             width: parseInt(best.width),
             height: parseInt(best.height),
             captured_at: photo.dateCreated ? new Date(photo.dateCreated) : new Date()
