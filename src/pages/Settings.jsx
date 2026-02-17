@@ -262,11 +262,9 @@ const Settings = () => {
                                         {albums.map((item, idx) => (
                                             <div key={idx} style={{ aspectRatio: '1', overflow: 'hidden' }}>
                                                 {/* Picker API returns baseUrl which needs params for size */}
-                                                <img
-                                                    src={`${item.mediaFile.baseUrl}=w200-h200-c`}
-                                                    alt="Picked"
-                                                    referrerPolicy="no-referrer"
-                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                <GooglePhoto
+                                                    session={session}
+                                                    baseUrl={item.mediaFile.baseUrl}
                                                 />
                                             </div>
                                         ))}
@@ -293,6 +291,64 @@ const Settings = () => {
             </div>
         </div>
     );
+};
+
+// Internal component to fetch and display protected Google Photos
+const GooglePhoto = ({ session, baseUrl }) => {
+    const [imageUrl, setImageUrl] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+
+        const fetchImage = async () => {
+            if (!session?.provider_token || !baseUrl) return;
+
+            try {
+                // Determine size: w200-h200-c (crop)
+                const targetUrl = `${baseUrl}=w200-h200-c`;
+
+                const { data, error } = await supabase.functions.invoke('proxy-google-photo', {
+                    body: {
+                        url: targetUrl,
+                        providerToken: session.provider_token
+                    }
+                });
+
+                if (error) throw error;
+                if (!active) return;
+
+                if (data && data.data) {
+                    // Create data URL from Base64
+                    const src = `data:${data.contentType};base64,${data.data}`;
+                    setImageUrl(src);
+                } else {
+                    console.warn("Proxy returned no data");
+                    setError(true);
+                }
+                setLoading(false);
+
+            } catch (e) {
+                console.error("Error fetching image:", e);
+                if (active) {
+                    setError(true);
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchImage();
+
+        return () => {
+            active = false;
+        };
+    }, [baseUrl, session]);
+
+    if (loading) return <div style={{ width: '100%', height: '100%', background: '#333', borderRadius: 4 }} />;
+    if (error) return <div style={{ width: '100%', height: '100%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', borderRadius: 4 }}>⚠️</div>;
+
+    return <img src={imageUrl} alt="Picked" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
 };
 
 const btnStyle = {
