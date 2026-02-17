@@ -40,8 +40,8 @@ const Settings = () => {
             provider: 'google',
             options: {
                 redirectTo: window.location.origin,
-                // Request explicitly space-separated scopes
-                scopes: 'email profile https://www.googleapis.com/auth/photoslibrary.readonly',
+                // Request Picker API scope
+                scopes: 'email profile https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent'
@@ -69,8 +69,8 @@ const Settings = () => {
             console.log("Project Number (from Token):", projectNumber);
 
             if (data.scope) {
-                const hasPhotosScope = data.scope.includes('https://www.googleapis.com/auth/photoslibrary.readonly');
-                setError(`Project #${projectNumber} | Has Photos Scope: ${hasPhotosScope ? '✅ YES' : '❌ NO'} | Scopes: ${data.scope}`);
+                const hasPhotosScope = data.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly');
+                setError(`Project #${projectNumber} | Has Picker Scope: ${hasPhotosScope ? '✅ YES' : '❌ NO'} | Scopes: ${data.scope}`);
             } else {
                 setError(`Token check failed: ${JSON.stringify(data)}`);
             }
@@ -95,7 +95,7 @@ const Settings = () => {
         }
     };
 
-    const fetchAlbums = async () => {
+    const startPickerSession = async () => {
         if (!session?.provider_token) {
             setError("No Access Token found. Try logging out and back in.");
             return;
@@ -103,26 +103,68 @@ const Settings = () => {
 
         try {
             setError(null);
-            const response = await fetch('https://photoslibrary.googleapis.com/v1/albums?pageSize=10', {
+            console.log("Creating Picker Session...");
+
+            const response = await fetch('https://photospicker.googleapis.com/v1/sessions', {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.provider_token}`
-                }
+                    'Authorization': `Bearer ${session.provider_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
                 console.error("Full Error:", errorData);
-                throw new Error(`Google API Error: ${errorData.error?.message || response.statusText}`);
+                throw new Error(`Picker API Error: ${errorData.error?.message || response.statusText}`);
             }
 
             const data = await response.json();
-            setAlbums(data.albums || []);
-            if (!data.albums) setError("No albums found (or empty account).");
+            const pickerUri = data.pickerUri;
+
+            if (pickerUri) {
+                console.log("Picker URI:", pickerUri);
+                // Open the picker in a new window
+                window.open(pickerUri, '_blank', 'width=800,height=600');
+
+                // Start polling for results
+                pollPickerSession(data.id);
+            } else {
+                setError("Failed to get Picker URI.");
+            }
 
         } catch (err) {
             console.error(err);
             setError(err.message);
         }
+    };
+
+    const pollPickerSession = async (sessionId) => {
+        const pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.provider_token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.mediaItemsSet) {
+                        // User has selected items!
+                        clearInterval(pollInterval);
+                        setAlbums(prev => [...prev, ...data.mediaItemsSet.mediaItems]); // Using setAlbums to store photos for now
+                        alert(`✅ Success! Selected ${data.mediaItemsSet.mediaItems.length} photos.`);
+                    }
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }, 2000);
+
+        // Stop polling after 5 minutes
+        setTimeout(() => clearInterval(pollInterval), 300000);
     };
 
     return (
@@ -146,8 +188,8 @@ const Settings = () => {
                         <p style={{ color: '#aaa', fontSize: '0.9rem' }}>{user.email}</p>
 
                         <div style={{ width: '100%', borderTop: '1px solid #444', marginTop: 10, paddingTop: 10 }}>
-                            <button onClick={fetchAlbums} style={{ ...btnStyle, background: '#10b981', width: '100%', marginBottom: 10 }}>
-                                🧪 Test: Fetch My Albums
+                            <button onClick={startPickerSession} style={{ ...btnStyle, background: '#10b981', width: '100%', marginBottom: 10 }}>
+                                🖼️ Select Photos from Google
                             </button>
                             <button onClick={testUserInfo} style={{ ...btnStyle, background: '#3b82f6', width: '100%', marginBottom: 10 }}>
                                 👤 Test User API
@@ -159,13 +201,20 @@ const Settings = () => {
                             {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', background: 'rgba(255,0,0,0.1)', padding: 10, borderRadius: 5, overflowWrap: 'break-word' }}>{error}</div>}
 
                             {albums.length > 0 && (
-                                <div style={{ textAlign: 'left', maxHeight: 200, overflowY: 'auto', background: '#111', padding: 10, borderRadius: 5 }}>
-                                    <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: 5 }}>Found {albums.length} albums:</p>
-                                    <ul style={{ paddingLeft: 20, margin: 0, fontSize: '0.9rem' }}>
-                                        {albums.map(album => (
-                                            <li key={album.id}>{album.title} ({album.mediaItemsCount} items)</li>
+                                <div style={{ textAlign: 'left', maxHeight: 300, overflowY: 'auto', background: '#111', padding: 10, borderRadius: 5 }}>
+                                    <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: 5 }}>Selected {albums.length} photos:</p>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
+                                        {albums.map((item, idx) => (
+                                            <div key={idx} style={{ aspectRatio: '1', overflow: 'hidden' }}>
+                                                {/* Picker API returns baseUrl which needs params for size */}
+                                                <img
+                                                    src={`${item.mediaFile.baseUrl}=w200-h200-c`}
+                                                    alt="Picked"
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
+                                            </div>
                                         ))}
-                                    </ul>
+                                    </div>
                                 </div>
                             )}
                         </div>
