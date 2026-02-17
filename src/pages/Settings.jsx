@@ -172,17 +172,14 @@ const Settings = () => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    // Log the full response to see the structure
-                    console.log("Polling Response:", JSON.stringify(data, null, 2));
+                    // Log the status
+                    console.log("Polling Status:", JSON.stringify(data, null, 2));
 
-                    if (data.mediaItemsSet && data.mediaItemsSet.mediaItems) {
+                    if (data.mediaItemsSet === true) {
                         // User has selected items!
                         clearInterval(pollInterval);
-                        setAlbums(prev => [...prev, ...data.mediaItemsSet.mediaItems]); // Using setAlbums to store photos for now
-                        alert(`✅ Success! Selected ${data.mediaItemsSet.mediaItems.length} photos.`);
-                    } else if (data.mediaItemsSet) {
-                        // mediaItemsSet exists but mediaItems is missing?
-                        console.warn("mediaItemsSet found but no mediaItems array:", data.mediaItemsSet);
+                        console.log("Selection confirmed. Fetching media items...");
+                        await fetchSessionMediaItems(sessionId);
                     }
                 }
             } catch (err) {
@@ -192,6 +189,36 @@ const Settings = () => {
 
         // Stop polling after 5 minutes
         setTimeout(() => clearInterval(pollInterval), 300000);
+    };
+
+    const fetchSessionMediaItems = async (sessionId) => {
+        try {
+            const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems?pageSize=100`, {
+                headers: {
+                    'Authorization': `Bearer ${session.provider_token}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("Media Items Fetch Error:", errorData);
+                throw new Error(`Failed to fetch items: ${errorData.error?.message}`);
+            }
+
+            const data = await response.json();
+            console.log("Media Items:", data);
+
+            if (data.mediaItems) {
+                setAlbums(prev => [...prev, ...data.mediaItems]);
+                alert(`✅ Success! Selected ${data.mediaItems.length} photos.`);
+            } else {
+                console.warn("No media items returned in the list.");
+            }
+
+        } catch (e) {
+            console.error(e);
+            setError(`Failed to load photos: ${e.message}`);
+        }
     };
 
     return (
