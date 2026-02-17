@@ -172,11 +172,17 @@ const Settings = () => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.mediaItemsSet) {
+                    // Log the full response to see the structure
+                    console.log("Polling Response:", data);
+
+                    if (data.mediaItemsSet && data.mediaItemsSet.mediaItems) {
                         // User has selected items!
                         clearInterval(pollInterval);
                         setAlbums(prev => [...prev, ...data.mediaItemsSet.mediaItems]); // Using setAlbums to store photos for now
                         alert(`✅ Success! Selected ${data.mediaItemsSet.mediaItems.length} photos.`);
+                    } else if (data.mediaItemsSet) {
+                        // mediaItemsSet exists but mediaItems is missing?
+                        console.warn("mediaItemsSet found but no mediaItems array:", data.mediaItemsSet);
                     }
                 }
             } catch (err) {
