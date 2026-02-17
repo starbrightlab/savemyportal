@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import HeartbeatVideo from './HeartbeatVideo';
 import silentVideo from '../assets/silent.mp4';
 
 const DualVideoTest = () => {
@@ -36,19 +35,7 @@ const DualVideoTest = () => {
 
             <div style={{ marginBottom: 20, border: '1px solid #333', padding: 10 }}>
                 <h3>1. Heartbeat Video (Background)</h3>
-                <p>Status: Check logs below. It should NEVER pause.</p>
-                {/* 
-                    We render HeartbeatVideo here. 
-                    Note: In the real app, HeartbeatVideo is in Layout, 
-                    but for this isolated test we render it directly to control/monitor it.
-                */}
-                <HeartbeatVideo onLog={(msg) => {
-                    // Filter out routine loops if noisy, or just log everything
-                    if (!msg.includes("Restarting") && !msg.includes("started successfully")) {
-                        addLog(`❤ Heartbeat: ${msg}`);
-                    }
-                    if (msg.includes("paused")) addLog(`❤ CRITICAL: Heartbeat PAUSED!`);
-                }} />
+                <p>Status: Running in Layout (Invisible/Black bg). Check if it stops when you play below.</p>
             </div>
 
             <div style={{ marginBottom: 20, border: '1px solid #333', padding: 10 }}>
