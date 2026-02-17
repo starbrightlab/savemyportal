@@ -63,13 +63,34 @@ const Settings = () => {
             const res = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${session.provider_token}`);
             const data = await res.json();
             console.log("Token Info:", data);
+
+            // Log the Project Number specifically
+            const projectNumber = data.issued_to?.split('-')[0];
+            console.log("Project Number (from Token):", projectNumber);
+
             if (data.scope) {
-                setError(`Current Scopes: ${data.scope}`);
+                setError(`Project #${projectNumber} | Scopes: ${data.scope.substring(0, 50)}...`);
             } else {
                 setError(`Token check failed: ${JSON.stringify(data)}`);
             }
         } catch (e) {
             setError(`Check failed: ${e.message}`);
+        }
+    };
+
+    const testUserInfo = async () => {
+        try {
+            const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
+                headers: { 'Authorization': `Bearer ${session.provider_token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                alert(`✅ User Info API Works! Hello ${data.name}`);
+            } else {
+                alert(`❌ User Info API Failed: ${data.error?.message}`);
+            }
+        } catch (e) {
+            alert(`Error: ${e.message}`);
         }
     };
 
