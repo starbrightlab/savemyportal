@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { fetchImageUrls } from "https://esm.sh/google-photos-album-image-url-fetch";
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -83,9 +82,6 @@ serve(async (req) => {
     } catch (error) {
         console.error("Scraper Error:", error)
 
-        // Attempt to update source with error status if we have a sourceId
-        // (This is tricky if the request didn't provide one, but we wrap the logic)
-
         return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,56 +92,145 @@ serve(async (req) => {
 // --- Scraper Implementations ---
 
 async function scrapeGooglePhotos(url: string) {
-    console.log("Scraping Google Photos URL using library:", url);
+    console.log("Scraping Google Photos URL (Robust verified):", url);
 
-    try {
-        const results = await fetchImageUrls(url);
+    const response = await fetch(url, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+    });
 
-        if (!results || !Array.isArray(results)) {
-            console.warn("Library returned invalid data:", results);
-            return [];
+    if (!response.ok) {
+        throw new Error(`Failed to fetch Google Photos album: ${response.status}`);
+    }
+
+    const html = await response.text();
+    console.log(`Fetched HTML length: ${html.length}`);
+
+    // Strategy: robust manual parsing
+    const callbackRegex = /AF_initDataCallback\s*\(/g;
+    let match;
+    let foundItems = [];
+
+    while ((match = callbackRegex.exec(html)) !== null) {
+        const start = match.index;
+
+        // Scan a reasonable window for the 'key'
+        const headerSection = html.substring(start, start + 300);
+        const keyMatch = headerSection.match(/key\s*:\s*['"]([^'"]+)['"]/);
+        const key = keyMatch ? keyMatch[1] : "unknown";
+
+        // Find "data:" starting from the callback start
+        const dataRegex = /data\s*:\s*(\[)/;
+        const dataMatch = html.substring(start, start + 100000).match(dataRegex);
+
+        if (!dataMatch) {
+            continue;
         }
 
-        console.log(`Library found ${results.length} items`);
+        // Calculate absolute start index of the first '['
+        const relativeDataStart = dataMatch.index;
+        const matchedString = dataMatch[0];
+        const openBracketIndex = start + relativeDataStart + matchedString.lastIndexOf('[');
 
-        // The library returns objects like:
-        // { url: string, width: number, height: number }
-        // We'll generate a consistent-ish external_id from the URL or random if needed.
-        // Google Photos URLs are long and unique enough.
+        // Manual bracket balancing
+        let bracketCount = 0;
+        let dataEndIndex = -1;
+        let inString = false;
+        let escaped = false;
+        let quoteChar = '';
 
-        const parsedItems = results.map(item => {
-            // Generate a simple ID from the URL hash if possible, or random.
-            // item.url is unique per photo version, but stable enough for now.
-            // We can use a simple hash of the URL as external_id.
+        for (let i = openBracketIndex; i < html.length; i++) {
+            const char = html[i];
 
-            // Simple hash function for ID
-            let hash = 0;
-            for (let i = 0; i < item.url.length; i++) {
-                hash = ((hash << 5) - hash) + item.url.charCodeAt(i);
-                hash |= 0; // Convert to 32bit integer
+            if (!inString) {
+                if (char === '[') {
+                    bracketCount++;
+                } else if (char === ']') {
+                    bracketCount--;
+                } else if (char === '"' || char === "'") {
+                    inString = true;
+                    quoteChar = char;
+                }
+            } else {
+                if (char === '\\' && !escaped) {
+                    escaped = true;
+                } else if (char === quoteChar && !escaped) {
+                    inString = false;
+                } else {
+                    escaped = false;
+                }
             }
-            const id = 'gp_' + Math.abs(hash).toString(16);
 
-            return {
-                external_id: id,
-                url: item.url,
-                width: item.width,
-                height: item.height,
-                captured_at: new Date() // Library doesn't return timestamp unfortunately
-            };
-        });
+            if (bracketCount === 0) {
+                dataEndIndex = i + 1;
+                break;
+            }
+        }
 
-        return parsedItems;
+        if (dataEndIndex === -1) {
+            continue;
+        }
 
-    } catch (e) {
-        console.error("Library Scraper Error:", e);
-        throw new Error(`Google Photos Library Error: ${e.message}`);
+        const jsonString = html.substring(openBracketIndex, dataEndIndex);
+
+        try {
+            const data = JSON.parse(jsonString);
+
+            // Heuristic check
+            if (data && Array.isArray(data) && data.length > 1 && Array.isArray(data[1])) {
+                const candidateItems = data[1];
+                const validPhotos = candidateItems.filter((item: any) => {
+                    return Array.isArray(item) && item.length >= 2 &&
+                        Array.isArray(item[1]) && typeof item[1][0] === 'string';
+                });
+
+                if (validPhotos.length > 0) {
+                    console.log(`Found ${validPhotos.length} valid photos in callback key '${key}'`);
+                    foundItems = validPhotos;
+                    break;
+                }
+            }
+        } catch (e) {
+            // Ignore parse errors
+        }
     }
+
+    if (foundItems.length === 0) {
+        console.warn("Regex failed to find any valid photo data.");
+        return [];
+    }
+
+    const parsedItems = [];
+    for (const item of foundItems) {
+        const id = item[0];
+        const baseUrl = item[1][0];
+        const width = item[1][1];
+        const height = item[1][2];
+
+        // Timestamp
+        let timestamp = new Date();
+        if (item[2]) {
+            timestamp = new Date(parseInt(item[2]) || item[2]);
+        }
+
+        parsedItems.push({
+            external_id: id,
+            url: baseUrl,
+            width: width,
+            height: height,
+            captured_at: timestamp
+        });
+    }
+
+    console.log(`Total parsed items: ${parsedItems.length}`);
+    return parsedItems;
 }
 
 
+
 async function scrapeICloud(url: string) {
-    console.log("Scraping iCloud URL:", url);
+    console.log("Scraping iCloud URL (Robust):", url);
 
     // Extract token from URL (e.g. https://www.icloud.com/sharedalbum/#B0NGrq0zwGrap7)
     const tokenMatch = url.match(/#([a-zA-Z0-9]+)/);
@@ -165,18 +250,21 @@ async function scrapeICloud(url: string) {
             headers: {
                 'Origin': 'https://www.icloud.com',
                 'Content-Type': 'text/plain',
+                'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             },
             body: JSON.stringify({ streamCtag: null })
         });
     };
 
     let response = await fetchStream(streamUrl);
+    let currentHost = `${partition}-sharedstreams.icloud.com`;
 
     // Handle 330 Redirect (wrong partition)
     if (response.status === 330 || (response.status >= 300 && response.status < 400)) {
         const newHost = response.headers.get('X-Apple-MMe-Host');
         if (newHost) {
             console.log(`Redirecting to new partition host: ${newHost}`);
+            currentHost = newHost;
             streamUrl = `https://${newHost}/${token}/sharedstreams/webstream`;
             response = await fetchStream(streamUrl);
         }
@@ -194,9 +282,34 @@ async function scrapeICloud(url: string) {
         return [];
     }
 
+    console.log(`Found ${photos.length} raw photos in stream.`);
+
+    // 2. Fetch Asset URLs
+    const photoGuids = photos.map((p: any) => p.photoGuid);
+    const assetUrlEndpoint = `https://${currentHost}/${token}/sharedstreams/webasseturls`;
+
+    console.log(`Fetching asset URLs from: ${assetUrlEndpoint}`);
+
+    const assetResponse = await fetch(assetUrlEndpoint, {
+        method: 'POST',
+        headers: {
+            'Origin': 'https://www.icloud.com',
+            'Content-Type': 'text/plain',
+            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        },
+        body: JSON.stringify({ photoGuids: photoGuids })
+    });
+
+    if (!assetResponse.ok) {
+        throw new Error(`Failed to fetch asset URLs: ${assetResponse.status}`);
+    }
+
+    const assetData = await assetResponse.json();
+    const locations = assetData.locations;
+    const items = assetData.items;
+
     // Map to common format
     const parsedItems = photos.map((photo: any) => {
-        // Find the best derivative (largest image)
         const derivatives = photo.derivatives;
         if (!derivatives) return null;
 
@@ -206,15 +319,38 @@ async function scrapeICloud(url: string) {
 
         if (!best) return null;
 
+        // URL Construction using checksum lookup
+        const checksum = best.checksum;
+        const itemInfo = items[checksum];
+
+        if (!itemInfo) {
+            console.warn(`No asset info found for checksum: ${checksum}`);
+            return null;
+        }
+
+        const locationKey = itemInfo.url_location;
+        const locationInfo = locations[locationKey];
+
+        if (!locationInfo || !locationInfo.hosts || locationInfo.hosts.length === 0) {
+            console.warn(`No location info found for key: ${locationKey}`);
+            return null;
+        }
+
+        const host = locationInfo.hosts[0];
+        const scheme = locationInfo.scheme || 'https';
+        const urlPath = itemInfo.url_path;
+
+        const finalUrl = `${scheme}://${host}${urlPath}`;
+
         return {
             external_id: photo.photoGuid,
-            url: best.url,
+            url: finalUrl,
             width: parseInt(best.width),
             height: parseInt(best.height),
             captured_at: photo.dateCreated ? new Date(photo.dateCreated) : new Date()
         };
     }).filter((item: any) => item !== null);
 
-    console.log(`Found ${parsedItems.length} photos in iCloud album.`);
+    console.log(`Successfully resolved URLs for ${parsedItems.length} photos.`);
     return parsedItems;
 }

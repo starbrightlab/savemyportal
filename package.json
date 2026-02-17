@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/starbrightlab/savemyportal"
+    "url": "git+https://github.com/starbrightlab/savemyportal.git"
   },
   "type": "module",
   "scripts": {
@@ -28,6 +28,16 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "tsx": "^4.21.0",
     "vite": "^7.3.1"
-  }
+  },
+  "description": "**SaveMyPortal** is an open-source initiative to repurpose Facebook Portal Plus (Gen 2) devices as premium, always-on smart home displays. It leverages a specific browser quirk (T17 Wake Lock Strategy) to prevent the device from sleeping, allowing it to function as a 24/7 photo frame or dashboard.",
+  "main": "eslint.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/starbrightlab/savemyportal/issues"
+  },
+  "homepage": "https://github.com/starbrightlab/savemyportal#readme"
 }
