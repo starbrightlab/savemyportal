@@ -1,5 +1,6 @@
 
 import React, { forwardRef, useImperativeHandle, useRef, useEffect } from 'react';
+import silentVideo from '../assets/silent.mp4';
 
 const HeartbeatVideo = forwardRef(({ onLog }, ref) => {
     const videoRef = useRef(null);
@@ -62,11 +63,14 @@ const HeartbeatVideo = forwardRef(({ onLog }, ref) => {
     return (
         <video
             ref={videoRef}
-            src="/silent.mp4"
+            src={silentVideo}
             loop
             muted
             playsInline
-            onError={(e) => console.error("Video Error:", e.nativeEvent)}
+            onError={(e) => {
+                console.error("Video Error:", e.nativeEvent);
+                if (onLog) onLog(`Video Error: ${e.code || 'unknown'} - ${e.nativeEvent ? e.nativeEvent.type : 'check console'}`);
+            }}
             style={{
                 position: 'fixed',
                 top: 0,
