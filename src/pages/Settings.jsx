@@ -40,7 +40,11 @@ const Settings = () => {
             provider: 'google',
             options: {
                 redirectTo: window.location.origin,
-                scopes: 'https://www.googleapis.com/auth/photoslibrary.readonly'
+                scopes: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+                queryParams: {
+                    access_type: 'offline', // Requests a refresh token (vital for long-term access)
+                    prompt: 'consent'       // Forces the consent screen to appear again
+                }
             }
         });
     };
@@ -64,7 +68,9 @@ const Settings = () => {
             });
 
             if (!response.ok) {
-                throw new Error(`Google API Error: ${response.statusText}`);
+                const errorData = await response.json();
+                console.error("Full Error:", errorData);
+                throw new Error(`Google API Error: ${errorData.error?.message || response.statusText}`);
             }
 
             const data = await response.json();
