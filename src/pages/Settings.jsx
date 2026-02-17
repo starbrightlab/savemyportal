@@ -193,19 +193,20 @@ const Settings = () => {
 
     const fetchSessionMediaItems = async (sessionId) => {
         try {
-            const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}/mediaItems?pageSize=100`, {
-                headers: {
-                    'Authorization': `Bearer ${session.provider_token}`
+            console.log("Invoking Edge Function to fetch media items...");
+
+            const { data, error } = await supabase.functions.invoke('fetch-google-photos', {
+                body: {
+                    sessionId: sessionId,
+                    providerToken: session.provider_token
                 }
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Media Items Fetch Error:", errorData);
-                throw new Error(`Failed to fetch items: ${errorData.error?.message}`);
+            if (error) {
+                console.error("Edge Function Error:", error);
+                throw new Error(`Edge Function failed: ${error.message}`);
             }
 
-            const data = await response.json();
             console.log("Media Items:", data);
 
             if (data.mediaItems) {
