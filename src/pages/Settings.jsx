@@ -1,32 +1,34 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 const Settings = () => {
     const [user, setUser] = useState(null);
-    const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [albums, setAlbums] = useState([]);
-    const [error, setError] = useState(null);
+    const [sources, setSources] = useState([]);
+    const [newUrl, setNewUrl] = useState('');
+    const [adding, setAdding] = useState(false);
+    const [message, setMessage] = useState(null);
 
     useEffect(() => {
         const checkUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setUser(session?.user ?? null);
-            setSession(session);
+            if (session?.user) {
+                fetchSources();
+            }
             setLoading(false);
         };
         checkUser();
 
-        // Listen for auth state changes
         const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
                 setUser(session.user);
-                setSession(session);
+                fetchSources();
             }
             if (event === 'SIGNED_OUT') {
                 setUser(null);
-                setSession(null);
-                setAlbums([]);
+                setSources([]);
             }
         });
 
@@ -35,13 +37,22 @@ const Settings = () => {
         };
     }, []);
 
+    const fetchSources = async () => {
+        const { data, error } = await supabase
+            .from('sources')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (data) setSources(data);
+        if (error) console.error("Error fetching sources:", error);
+    };
+
     const handleLogin = async () => {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.origin,
-                // Use FULL URLs for all scopes and include openid to match debug script exactly
-                scopes: 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+                // No special scopes needed anymore
                 queryParams: {
                     access_type: 'offline',
                     prompt: 'consent'
@@ -54,311 +65,201 @@ const Settings = () => {
         await supabase.auth.signOut();
     };
 
-    const checkScopes = async () => {
-        if (!session?.provider_token) {
-            setError("No Access Token found.");
-            return;
-        }
-        try {
-            const res = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${session.provider_token}`);
-            const data = await res.json();
-            console.log("Token Info:", data);
-
-            // Log the Project Number specifically
-            const projectNumber = data.issued_to?.split('-')[0];
-            console.log("Project Number (from Token):", projectNumber);
-
-            if (data.scope) {
-                const hasPickerScope = data.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly');
-                const message = `Project #${projectNumber} | Has Picker Scope: ${hasPickerScope ? '✅ YES' : '❌ NO'}`;
-                setError(message);
-                console.log(message);
-                // Also show the full scope list for debugging
-                console.log("Full Scopes:", data.scope);
-            } else {
-                setError(`Token check failed: ${JSON.stringify(data)}`);
-            }
-        } catch (e) {
-            setError(`Check failed: ${e.message}`);
-        }
+    const identifySourceType = (url) => {
+        if (url.includes('photos.app.goo.gl') || url.includes('photos.google.com')) return 'google_photos';
+        if (url.includes('icloud.com/sharedalbum')) return 'icloud';
+        if (url.includes('dropbox.com')) return 'dropbox';
+        return null;
     };
 
-    const testUserInfo = async () => {
-        try {
-            const res = await fetch('https://www.googleapis.com/oauth2/v1/userinfo', {
-                headers: { 'Authorization': `Bearer ${session.provider_token}` }
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert(`✅ User Info API Works! Hello ${data.name}`);
-            } else {
-                alert(`❌ User Info API Failed: ${data.error?.message}`);
-            }
-        } catch (e) {
-            alert(`Error: ${e.message}`);
-        }
-    };
+    const handleAddSource = async () => {
+        if (!newUrl) return;
+        setAdding(true);
+        setMessage(null);
 
-    const startPickerSession = async () => {
-        if (!session?.provider_token) {
-            setError("No Access Token found. Try logging out and back in.");
+        const type = identifySourceType(newUrl);
+        if (!type) {
+            setMessage({ type: 'error', text: 'Invalid URL. Please provide a valid Google Photos or iCloud Shared Album link.' });
+            setAdding(false);
             return;
         }
 
         try {
-            setError(null);
-            console.log("Creating Picker Session...");
+            // 1. Insert Source
+            const { data: source, error } = await supabase
+                .from('sources')
+                .insert({
+                    user_id: user.id,
+                    url: newUrl,
+                    type: type,
+                    status: 'pending'
+                })
+                .select()
+                .single();
 
-            // --- Pre-flight Check: Verify Scopes ---
-            // We inspect the token first to ensure Supabase actually gave us the right scope.
-            // This prevents the confusing 403 error from Google's API limit.
-            try {
-                const tokenRes = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${session.provider_token}`);
-                const tokenData = await tokenRes.json();
-                if (!tokenData.scope || !tokenData.scope.includes('https://www.googleapis.com/auth/photospicker.mediaitems.readonly')) {
-                    const msg = `MISSING SCOPE. Got: ${tokenData.scope}`;
-                    console.error(msg);
-                    setError("Authenication Error: You are missing the 'photospicker' permission. Please Sign Out and Sign In again.");
-                    return;
-                }
-            } catch (scopeErr) {
-                console.warn("Could not verify scopes before request:", scopeErr);
-            }
-            // ----------------------------------------
+            if (error) throw error;
 
-            const response = await fetch('https://photospicker.googleapis.com/v1/sessions', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session.provider_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({})
+            console.log("Source added:", source);
+            setNewUrl('');
+            fetchSources(); // Refresh list immediately
+
+            // 2. Trigger Scraper
+            setMessage({ type: 'info', text: 'Source added. Syncing photos...' });
+
+            const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
+                body: { sourceId: source.id }
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Full Error:", errorData);
-                throw new Error(`Picker API Error: ${errorData.error?.message || response.statusText}`);
-            }
+            if (scrapeError) throw scrapeError;
 
-            const data = await response.json();
-            const pickerUri = data.pickerUri;
-
-            if (pickerUri) {
-                console.log("Picker URI:", pickerUri);
-                // Open the picker in a new window
-                window.open(pickerUri, '_blank', 'width=800,height=600');
-
-                // Start polling for results
-                pollPickerSession(data.id);
-            } else {
-                setError("Failed to get Picker URI.");
-            }
-
-        } catch (err) {
-            console.error(err);
-            setError(err.message);
-        }
-    };
-
-    const pollPickerSession = async (sessionId) => {
-        const pollInterval = setInterval(async () => {
-            try {
-                const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${session.provider_token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    // Log the status
-                    console.log("Polling Status:", JSON.stringify(data, null, 2));
-
-                    if (data.mediaItemsSet === true) {
-                        // User has selected items!
-                        clearInterval(pollInterval);
-                        console.log("Selection confirmed. Fetching media items...");
-                        await fetchSessionMediaItems(sessionId);
-                    }
-                }
-            } catch (err) {
-                console.error("Polling error:", err);
-            }
-        }, 2000);
-
-        // Stop polling after 5 minutes
-        setTimeout(() => clearInterval(pollInterval), 300000);
-    };
-
-    const fetchSessionMediaItems = async (sessionId) => {
-        try {
-            console.log("Invoking Edge Function to fetch media items...");
-
-            const { data, error } = await supabase.functions.invoke('fetch-google-photos', {
-                body: {
-                    sessionId: sessionId,
-                    providerToken: session.provider_token
-                }
-            });
-
-            if (error) {
-                console.error("Edge Function Error:", error);
-                throw new Error(`Edge Function failed: ${error.message}`);
-            }
-
-            console.log("Media Items:", data);
-
-            if (data.mediaItems) {
-                setAlbums(prev => [...prev, ...data.mediaItems]);
-                alert(`✅ Success! Selected ${data.mediaItems.length} photos.`);
-            } else {
-                console.warn("No media items returned in the list.");
-            }
+            console.log("Scrape result:", scrapeData);
+            setMessage({ type: 'success', text: `Success! Found ${scrapeData.count || 0} photos.` });
+            fetchSources(); // Refresh to show active status
 
         } catch (e) {
             console.error(e);
-            setError(`Failed to load photos: ${e.message}`);
+            setMessage({ type: 'error', text: `Error: ${e.message}` });
+        } finally {
+            setAdding(false);
         }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm("Are you sure you want to remove this album?")) return;
+
+        await supabase.from('sources').delete().eq('id', id);
+        setSources(prev => prev.filter(s => s.id !== id));
+    };
+
+    const handleResync = async (id) => {
+        setMessage({ type: 'info', text: 'Syncing...' });
+        try {
+            const { data: scrapeData, error } = await supabase.functions.invoke('source-manager', {
+                body: { sourceId: id }
+            });
+            if (error) throw error;
+            setMessage({ type: 'success', text: `Synced! Found ${scrapeData.count || 0} photos.` });
+            fetchSources();
+        } catch (e) {
+            setMessage({ type: 'error', text: `Sync failed: ${e.message}` });
+        }
+    };
+
+    // Helper for status icons
+    const getStatusIcon = (status) => {
+        if (status === 'active') return '✅';
+        if (status === 'error') return '⚠️';
+        return '⏳';
     };
 
     return (
         <div className="center-content">
             <h1>Settings</h1>
 
-            <div style={{ marginTop: 20, padding: 30, background: '#222', borderRadius: 16, width: '100%', maxWidth: 500 }}>
-                <h2>Account</h2>
+            <div style={{ marginTop: 20, padding: 30, background: '#222', borderRadius: 16, width: '100%', maxWidth: 600 }}>
+                <h2>Connected Albums</h2>
+
                 {loading ? (
                     <p>Loading...</p>
                 ) : user ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                        {user.user_metadata?.avatar_url && (
-                            <img
-                                src={user.user_metadata.avatar_url}
-                                alt="Avatar"
-                                style={{ width: 64, height: 64, borderRadius: '50%' }}
-                            />
-                        )}
-                        <p style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{user.user_metadata?.full_name}</p>
-                        <p style={{ color: '#aaa', fontSize: '0.9rem' }}>{user.email}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid #444' }}>
+                            {user.user_metadata?.avatar_url && (
+                                <img src={user.user_metadata.avatar_url} alt="" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                            )}
+                            <span style={{ color: '#aaa', fontSize: '0.9rem' }}>{user.email}</span>
+                            <button onClick={handleLogout} style={smallBtnStyle}>Sign Out</button>
+                        </div>
 
-                        <div style={{ width: '100%', borderTop: '1px solid #444', marginTop: 10, paddingTop: 10 }}>
-                            <button onClick={startPickerSession} style={{ ...btnStyle, background: '#10b981', width: '100%', marginBottom: 10 }}>
-                                🖼️ Select Photos from Google
-                            </button>
-                            <button onClick={testUserInfo} style={{ ...btnStyle, background: '#3b82f6', width: '100%', marginBottom: 10 }}>
-                                👤 Test User API
-                            </button>
-                            <button onClick={checkScopes} style={{ ...btnStyle, background: '#6366f1', width: '100%', marginBottom: 10 }}>
-                                🕵️ Debug Scopes
-                            </button>
+                        {/* Add Source Form */}
+                        <div>
+                            <p style={{ marginBottom: 10 }}>Add a Shared Album URL (Google Photos or iCloud):</p>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <input
+                                    type="text"
+                                    placeholder="https://photos.app.goo.gl/..."
+                                    value={newUrl}
+                                    onChange={(e) => setNewUrl(e.target.value)}
+                                    style={{ flex: 1, padding: 10, borderRadius: 5, border: '1px solid #555', background: '#333', color: 'white' }}
+                                />
+                                <button
+                                    onClick={handleAddSource}
+                                    disabled={adding || !newUrl}
+                                    style={{ ...btnStyle, opacity: adding ? 0.7 : 1 }}
+                                >
+                                    {adding ? 'Adding...' : 'Add'}
+                                </button>
+                            </div>
+                            {message && <p style={{
+                                marginTop: 10,
+                                color: message.type === 'error' ? '#ef4444' : message.type === 'success' ? '#10b981' : '#3b82f6',
+                                fontSize: '0.9rem'
+                            }}>{message.text}</p>}
+                        </div>
 
-                            {error && <div style={{ color: '#ef4444', fontSize: '0.8rem', background: 'rgba(255,0,0,0.1)', padding: 10, borderRadius: 5, overflowWrap: 'break-word' }}>{error}</div>}
-
-                            {albums.length > 0 && (
-                                <div style={{ textAlign: 'left', maxHeight: 300, overflowY: 'auto', background: '#111', padding: 10, borderRadius: 5 }}>
-                                    <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: 5 }}>Selected {albums.length} photos:</p>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5 }}>
-                                        {albums.map((item, idx) => (
-                                            <div key={idx} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                                {/* Picker API returns baseUrl which needs params for size */}
-                                                <GooglePhoto
-                                                    session={session}
-                                                    baseUrl={item.mediaFile.baseUrl}
-                                                />
+                        {/* Sources List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            {sources.length === 0 ? (
+                                <p style={{ color: '#666', fontStyle: 'italic' }}>No albums connected yet.</p>
+                            ) : (
+                                sources.map(source => (
+                                    <div key={source.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#333', padding: 10, borderRadius: 8 }}>
+                                        <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', marginRight: 10 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                                <span>{source.type === 'google_photos' ? '🖼️ Google' : source.type === 'icloud' ? '☁️ iCloud' : '📁 Dropbox'}</span>
+                                                <span style={{ fontSize: '0.8rem', color: '#999' }}>({getStatusIcon(source.status)})</span>
                                             </div>
-                                        ))}
+                                            <a href={source.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: '#3b82f6', textDecoration: 'none' }}>
+                                                {source.url}
+                                            </a>
+                                            {source.error_message && <div style={{ color: '#ef4444', fontSize: '0.75rem' }}>{source.error_message}</div>}
+                                            {source.last_scraped_at && <div style={{ color: '#666', fontSize: '0.75rem' }}>Last synced: {new Date(source.last_scraped_at).toLocaleTimeString()}</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 5 }}>
+                                            <button onClick={() => handleResync(source.id)} style={{ ...smallBtnStyle, background: '#6366f1' }}>Sync</button>
+                                            <button onClick={() => handleDelete(source.id)} style={{ ...smallBtnStyle, background: '#ef4444' }}>DEL</button>
+                                        </div>
                                     </div>
-                                </div>
+                                ))
                             )}
                         </div>
 
-                        <button onClick={handleLogout} style={{ ...btnStyle, background: '#ef4444', width: '100%' }}>Sign Out</button>
                     </div>
                 ) : (
                     <div style={{ textAlign: 'center' }}>
-                        <p style={{ marginBottom: 20 }}>Connect your Google Photos account to access your albums.</p>
+                        <p style={{ marginBottom: 20 }}>Sign in to manage your connected albums.</p>
                         <button onClick={handleLogin} style={btnStyle}>
-                            Connect Google Account
+                            Sign In with Google
                         </button>
                     </div>
                 )}
             </div>
 
             <div style={{ marginTop: 40, textAlign: 'center' }}>
-                <p style={{ fontSize: '0.8rem', color: '#666' }}>SaveMyPortal v0.1.0</p>
+                <p style={{ fontSize: '0.8rem', color: '#666' }}>SaveMyPortal v0.2.0</p>
                 <p style={{ fontSize: '0.8rem', color: '#666' }}>Provided by Starbright Lab</p>
             </div>
         </div>
     );
 };
 
-// Internal component to fetch and display protected Google Photos
-const GooglePhoto = ({ session, baseUrl }) => {
-    const [imageUrl, setImageUrl] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
-
-    useEffect(() => {
-        let active = true;
-
-        const fetchImage = async () => {
-            if (!session?.provider_token || !baseUrl) return;
-
-            try {
-                // Determine size: w200-h200-c (crop)
-                const targetUrl = `${baseUrl}=w200-h200-c`;
-
-                const { data, error } = await supabase.functions.invoke('proxy-google-photo', {
-                    body: {
-                        url: targetUrl,
-                        providerToken: session.provider_token
-                    }
-                });
-
-                if (error) throw error;
-                if (!active) return;
-
-                if (data && data.data) {
-                    // Create data URL from Base64
-                    const src = `data:${data.contentType};base64,${data.data}`;
-                    setImageUrl(src);
-                } else {
-                    console.warn("Proxy returned no data");
-                    setError(true);
-                }
-                setLoading(false);
-
-            } catch (e) {
-                console.error("Error fetching image:", e);
-                if (active) {
-                    setError(true);
-                    setLoading(false);
-                }
-            }
-        };
-
-        fetchImage();
-
-        return () => {
-            active = false;
-        };
-    }, [baseUrl, session]);
-
-    if (loading) return <div style={{ width: '100%', height: '100%', background: '#333', borderRadius: 4 }} />;
-    if (error) return <div style={{ width: '100%', height: '100%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', borderRadius: 4 }}>⚠️</div>;
-
-    return <img src={imageUrl} alt="Picked" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-};
-
 const btnStyle = {
-    marginTop: 10,
     padding: '10px 20px',
     borderRadius: 5,
     border: 'none',
     background: '#3b82f6',
     color: 'white',
     fontSize: '1rem',
+    cursor: 'pointer'
+};
+
+const smallBtnStyle = {
+    padding: '5px 10px',
+    borderRadius: 4,
+    border: 'none',
+    background: '#444',
+    color: 'white',
+    fontSize: '0.8rem',
     cursor: 'pointer'
 };
 
