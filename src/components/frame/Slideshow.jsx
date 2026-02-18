@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import defaultPhotos from '@/data/photos.json';
 
-export default function Hero() {
+export default function Slideshow({ speed = 10000 }) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [photos, setPhotos] = useState(defaultPhotos);
     const [loading, setLoading] = useState(true);
@@ -21,7 +20,7 @@ export default function Hero() {
                     .from('source_items')
                     .select('*')
                     .order('captured_at', { ascending: false })
-                    .limit(50);
+                    .limit(100);
 
                 if (data && data.length > 0) {
                     userPhotos = data.map(item => ({
@@ -53,13 +52,12 @@ export default function Hero() {
         if (photos.length <= 1) return;
         const interval = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % photos.length);
-        }, 10000);
+        }, speed);
         return () => clearInterval(interval);
-    }, [photos.length]);
+    }, [photos.length, speed]);
 
     return (
-        <section className="relative w-full h-full flex items-center justify-center bg-black">
-            {/* Background Slideshow */}
+        <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
             {photos.map((photo, index) => (
                 <div
                     key={photo.id || index}
@@ -69,43 +67,18 @@ export default function Hero() {
                     <img
                         src={photo.url}
                         alt="Background"
-                        className="w-full h-full object-cover opacity-60"
+                        className="w-full h-full object-contain" // Contain ensures full image visibility without crop
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-deep-space via-transparent to-deep-space/40" />
+                    {/* Optional: Subtle gradient at bottom for text readability if we add metadata */}
+                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+                    {/* Photo Info */}
+                    <div className={`absolute bottom-6 right-6 text-white/60 text-sm font-medium transition-opacity duration-500 ${index === currentIndex ? 'opacity-100' : 'opacity-0'
+                        }`}>
+                        {photo.credit}
+                    </div>
                 </div>
             ))}
-
-            {/* Content Overlay */}
-            <div className="relative z-10 text-center px-4 max-w-4xl mx-auto animate-fade-in">
-                <h1 className="text-5xl md:text-7xl font-bold font-display tracking-tight mb-6">
-                    <span className="text-gradient">Turn your Portal</span><br />
-                    <span>into a Forever Frame.</span>
-                </h1>
-                <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                    Repurpose your hardware. Display your memories. <br />
-                    <span className="text-soft-gold font-medium">No forced deprecation.</span>
-                </p>
-
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                    <Link
-                        href="/frame"
-                        className="px-8 py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-full text-lg font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105"
-                    >
-                        Start Frame
-                    </Link>
-                    <Link
-                        href="/onboarding"
-                        className="px-8 py-4 glass rounded-full text-lg font-medium hover:bg-white/10 transition-all border-white/20"
-                    >
-                        Setup / Onboard
-                    </Link>
-                </div>
-            </div>
-
-            {/* Photo Credit */}
-            <div className="absolute bottom-6 right-6 text-xs text-white/40 z-20">
-                Photo: {photos[currentIndex]?.credit || 'SaveMyPortal Collection'}
-            </div>
-        </section>
+        </div>
     );
 }

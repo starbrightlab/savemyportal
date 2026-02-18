@@ -124,7 +124,7 @@ export default function Dashboard() {
                     >
                         Sign Out
                     </button>
-                    <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
+                    <Link href="/frame" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
                         View Frame
                     </Link>
                 </div>
@@ -151,7 +151,7 @@ export default function Dashboard() {
                 </div>
                 {message && (
                     <div className={`mt-4 text-sm font-medium ${message.type === 'error' ? 'text-red-400' :
-                            message.type === 'success' ? 'text-green-400' : 'text-blue-400'
+                        message.type === 'success' ? 'text-green-400' : 'text-blue-400'
                         }`}>
                         {message.text}
                     </div>
