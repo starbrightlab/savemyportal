@@ -8,6 +8,8 @@ export async function GET(request: Request) {
     // if "next" is in param, use it as the redirect target
     const next = searchParams.get('next') ?? '/'
 
+    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}`);
+
     if (code) {
         const cookieStore = cookies()
         const supabase = createServerClient(
@@ -29,7 +31,10 @@ export async function GET(request: Request) {
         )
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
+            console.log(`[AuthCallback] Session exchanged successfully. Redirecting to ${next}`);
             return NextResponse.redirect(`${origin}${next}`)
+        } else {
+            console.error(`[AuthCallback] Error exchanging code: ${error.message}`);
         }
     }
 
