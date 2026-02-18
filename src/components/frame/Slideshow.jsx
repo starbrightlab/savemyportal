@@ -68,6 +68,7 @@ export default function Slideshow({ speed = 10000 }) {
                         src={photo.url}
                         alt="Background"
                         className="w-full h-full object-contain" // Contain ensures full image visibility without crop
+                        referrerPolicy="no-referrer"
                     />
                     {/* Optional: Subtle gradient at bottom for text readability if we add metadata */}
                     <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
