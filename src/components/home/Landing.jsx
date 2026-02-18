@@ -106,11 +106,8 @@ export default function Landing() {
                                     href="/dashboard"
                                     className="px-6 py-2 text-sm font-medium text-gray-400 hover:text-white border border-white/10 rounded-full hover:bg-white/5 transition-colors"
                                 >
-                                    Manage Feed
-                                </Link>
-                                <button className="px-6 py-2 text-sm font-medium text-gray-400 hover:text-white border border-white/10 rounded-full hover:bg-white/5 transition-colors">
                                     Settings
-                                </button>
+                                </Link>
                             </div>
                         </div>
                     )}
