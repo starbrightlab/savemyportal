@@ -1,0 +1,85 @@
+"use client";
+
+import { useState } from 'react';
+
+interface Source {
+    id: string;
+    name?: string;
+    url?: string;
+    type: 'google_photos' | 'icloud' | string;
+    status: 'active' | 'error' | 'pending' | string;
+    last_scraped_at?: string;
+    error_message?: string;
+}
+
+interface SourceCardProps {
+    source: Source;
+    onSync: (id: string) => Promise<void>;
+    onDelete: (id: string) => void;
+}
+
+export default function SourceCard({ source, onSync, onDelete }: SourceCardProps) {
+    const [loading, setLoading] = useState(false);
+
+    const handleSync = async () => {
+        setLoading(true);
+        await onSync(source.id);
+        setLoading(false);
+    };
+
+    const handleDelete = async () => {
+        if (confirm("Are you sure?")) {
+            await onDelete(source.id);
+        }
+    };
+
+    return (
+        <div className="glass-card p-6 relative group border hover:border-electric-blue/50 transition-colors">
+            <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                    <span className="text-2xl">
+                        {source.type === 'google_photos' ? '🖼️' : source.type === 'icloud' ? '☁️' : '📁'}
+                    </span>
+                    <div>
+                        <h3 className="font-bold text-white text-lg">
+                            {source.name || (source.type === 'google_photos' ? 'Google Photos' : 'iCloud Album')}
+                            <span className="text-xs font-normal text-gray-500 ml-2">#{source.id.slice(0, 4)}</span>
+                        </h3>
+                        <p className="text-xs text-gray-400 truncate max-w-[200px]">
+                            {source.url}
+                        </p>
+                    </div>
+                </div>
+                <div className={`px-2 py-1 rounded text-xs font-bold ${source.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                    source.status === 'error' ? 'bg-red-500/20 text-red-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                    {source.status.toUpperCase()}
+                </div>
+            </div>
+
+            <div className="text-sm text-gray-400 space-y-1">
+                <p>Last Sync: {source.last_scraped_at ? new Date(source.last_scraped_at).toLocaleTimeString() : 'Never'}</p>
+                {source.error_message && (
+                    <p className="text-red-400 text-xs">Error: {source.error_message}</p>
+                )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+                <button
+                    onClick={handleSync}
+                    disabled={loading}
+                    className="flex-1 py-2 rounded-lg bg-electric-blue/10 hover:bg-electric-blue/20 text-electric-blue text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                    {loading ? 'Syncing...' : 'Sync Now'}
+                </button>
+                <button
+                    onClick={() => onDelete(source.id)}
+                    className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-semibold transition-colors"
+                >
+                    Delete
+                </button>
+            </div>
+        </div >
+    );
+}
