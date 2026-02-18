@@ -37,15 +37,15 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     console.log(`[Middleware] Path: ${request.nextUrl.pathname}`);
+    const cookieNames = request.cookies.getAll().map(c => c.name).join(', ');
+    console.log(`[Middleware] Cookies present: ${cookieNames}`);
+
     console.log(`[Middleware] User ID: ${user?.id || 'null'}`);
-    console.log(`[Middleware] Error: ${error?.message || 'none'}`);
-    const cookieHeader = request.headers.get('cookie');
-    console.log(`[Middleware] Cookie Header present: ${!!cookieHeader}`);
 
     // Protected routes
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        console.log("[Middleware] Redirecting to /onboarding (No User) - DISABLED FOR DEBUGGING");
-        // return NextResponse.redirect(new URL('/onboarding', request.url))
+        console.log("[Middleware] Redirecting to /onboarding (No User)");
+        return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
     if (request.nextUrl.pathname === '/' && !user) {

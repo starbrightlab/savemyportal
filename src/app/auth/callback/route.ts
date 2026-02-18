@@ -21,6 +21,7 @@ export async function GET(request: Request) {
                         return cookieStore.get(name)?.value
                     },
                     set(name: string, value: string, options: CookieOptions) {
+                        console.log(`[AuthCallback] Setting cookie: ${name}`);
                         cookieStore.set({ name, value, ...options })
                     },
                     remove(name: string, options: CookieOptions) {

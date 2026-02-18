@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`
+                redirectTo: `${window.location.origin}/auth/callback?next=/`
             }
         });
         if (error) console.error("Error signing in:", error);
