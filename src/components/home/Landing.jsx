@@ -77,15 +77,15 @@ export default function Landing() {
                     {!user ? (
                         /* GUEST STATE */
                         <div className="space-y-6">
-                            <p className="text-xl text-gray-300 font-light">
-                                Repurpose your hardware. Give it a second life.
-                            </p>
                             <Link
                                 href="/onboarding"
-                                className="inline-block px-10 py-5 bg-electric-blue text-white rounded-full text-xl font-bold hover:shadow-[0_0_30px_rgba(59,130,246,0.6)] transition-all transform hover:scale-105"
+                                className="px-20 py-10 bg-electric-blue border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
                             >
                                 Get Started
                             </Link>
+                            <p className="text-xl text-gray-300 font-light">
+                                Repurpose your portal. Give it a second life.
+                            </p>
                         </div>
                     ) : (
                         /* LOGGED IN STATE */
