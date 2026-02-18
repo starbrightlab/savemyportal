@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 const StepAuth = ({ onNext }) => {
     const { user, signInWithGoogle } = useAuth();
@@ -12,7 +12,7 @@ const StepAuth = ({ onNext }) => {
     }, [user, onNext]);
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-8 text-center animate-fadeIn">
+        <div className="flex flex-col items-center justify-center space-y-8 text-center animate-fade-in">
             <div className="space-y-4">
                 <h2 className="text-3xl font-bold text-white">Welcome</h2>
                 <p className="text-gray-300 text-lg max-w-md mx-auto leading-relaxed">

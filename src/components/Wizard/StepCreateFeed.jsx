@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 const StepCreateFeed = ({ onNext }) => {
     const { user } = useAuth();
@@ -35,7 +35,7 @@ const StepCreateFeed = ({ onNext }) => {
     };
 
     return (
-        <div className="flex flex-col items-center space-y-8 w-full max-w-md mx-auto animate-fadeIn">
+        <div className="flex flex-col items-center space-y-8 w-full max-w-md mx-auto animate-fade-in">
             <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-white">Name Your Frame</h2>
                 <p className="text-gray-400">
