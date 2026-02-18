@@ -70,6 +70,7 @@ export default function Hero() {
                         src={photo.url}
                         alt="Background"
                         className="w-full h-full object-cover opacity-60"
+                        referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-deep-space via-transparent to-deep-space/40" />
                 </div>
