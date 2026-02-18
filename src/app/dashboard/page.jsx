@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import SourceCard from '@/components/dashboard/SourceCard';
@@ -8,44 +8,112 @@ import FeedCard from '@/components/dashboard/FeedCard';
 import FeedEditor from '@/components/dashboard/FeedEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function Dashboard() {
     const { user, loading: authLoading } = useAuth();
-    const [sources, setSources] = useState([]);
-    const [feeds, setFeeds] = useState([]);
-    const [loadingFeeds, setLoadingFeeds] = useState(true);
     const [newUrl, setNewUrl] = useState('');
-    const [adding, setAdding] = useState(false);
     const [editingFeed, setEditingFeed] = useState(null);
     const [message, setMessage] = useState(null);
     const router = useRouter();
+    const queryClient = useQueryClient();
 
     // Redirect if not logged in
-    useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/onboarding');
+    if (!authLoading && !user) {
+        router.push('/onboarding');
+    }
+
+    // --- Queries ---
+
+    const { data: sources = [], isLoading: loadingSources } = useQuery({
+        queryKey: ['sources'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('sources').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!user,
+    });
+
+    const { data: feeds = [], isLoading: loadingFeeds } = useQuery({
+        queryKey: ['feeds'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('feeds').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!user,
+    });
+
+    // --- Mutations ---
+
+    const addSourceMutation = useMutation({
+        mutationFn: async (url) => {
+            const type = identifySourceType(url);
+            if (!type) throw new Error('Invalid URL');
+
+            // 1. Insert Source
+            const { data: source, error } = await supabase
+                .from('sources')
+                .insert({ user_id: user.id, url, type, status: 'pending' })
+                .select()
+                .single();
+            if (error) throw error;
+
+            // 2. Trigger Scrape
+            const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
+                body: { sourceId: source.id }
+            });
+            if (scrapeError) throw scrapeError;
+
+            return { source, count: scrapeData.count };
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
+            setNewUrl('');
+            setMessage({ type: 'success', text: `Success! Found ${data.count || 0} photos.` });
+        },
+        onError: (error) => {
+            setMessage({ type: 'error', text: `Error: ${error.message}` });
         }
-    }, [user, authLoading, router]);
+    });
 
-    // Fetch data
-    useEffect(() => {
-        if (user) {
-            fetchSources();
-            fetchFeeds();
+    const deleteSourceMutation = useMutation({
+        mutationFn: async (id) => {
+            const { error } = await supabase.from('sources').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
         }
-    }, [user]);
+    });
 
-    const fetchSources = async () => {
-        const { data } = await supabase.from('sources').select('*').order('created_at', { ascending: false });
-        if (data) setSources(data);
-    };
+    const deleteFeedMutation = useMutation({
+        mutationFn: async (id) => {
+            const { error } = await supabase.from('feeds').delete().eq('id', id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['feeds'] });
+        }
+    });
 
-    const fetchFeeds = async () => {
-        setLoadingFeeds(true);
-        const { data } = await supabase.from('feeds').select('*').order('created_at', { ascending: false });
-        if (data) setFeeds(data);
-        setLoadingFeeds(false);
-    };
+    const syncSourceMutation = useMutation({
+        mutationFn: async (id) => {
+            const { data: scrapeData, error } = await supabase.functions.invoke('source-manager', {
+                body: { sourceId: id }
+            });
+            if (error) throw error;
+            return scrapeData;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
+            setMessage({ type: 'success', text: `Synced! Found ${data.count || 0} photos.` });
+        },
+        onError: (error) => {
+            setMessage({ type: 'error', text: `Sync failed: ${error.message}` });
+        }
+    });
 
     const identifySourceType = (url) => {
         if (url.includes('photos.app.goo.gl') || url.includes('photos.google.com')) return 'google_photos';
@@ -54,70 +122,10 @@ export default function Dashboard() {
         return null;
     };
 
-    const handleAddSource = async () => {
+    const handleAddSource = () => {
         if (!newUrl) return;
-        setAdding(true);
         setMessage(null);
-
-        const type = identifySourceType(newUrl);
-        if (!type) {
-            setMessage({ type: 'error', text: 'Invalid URL. Please provide a valid Google Photos or iCloud Shared Album link.' });
-            setAdding(false);
-            return;
-        }
-
-        try {
-            const { data: source, error } = await supabase
-                .from('sources')
-                .insert({
-                    user_id: user.id,
-                    url: newUrl,
-                    type: type,
-                    status: 'pending'
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            setNewUrl('');
-            fetchSources();
-            setMessage({ type: 'info', text: 'Source added. Syncing photos...' });
-
-            const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
-                body: { sourceId: source.id }
-            });
-
-            if (scrapeError) throw scrapeError;
-
-            setMessage({ type: 'success', text: `Success! Found ${scrapeData.count || 0} photos.` });
-            fetchSources();
-
-        } catch (e) {
-            console.error(e);
-            setMessage({ type: 'error', text: `Error: ${e.message}` });
-        } finally {
-            setAdding(false);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        await supabase.from('sources').delete().eq('id', id);
-        setSources(prev => prev.filter(s => s.id !== id));
-    };
-
-    const handleResync = async (id) => {
-        setMessage({ type: 'info', text: 'Syncing...' });
-        try {
-            const { data: scrapeData, error } = await supabase.functions.invoke('source-manager', {
-                body: { sourceId: id }
-            });
-            if (error) throw error;
-            setMessage({ type: 'success', text: `Synced! Found ${scrapeData.count || 0} photos.` });
-            fetchSources();
-        } catch (e) {
-            setMessage({ type: 'error', text: `Sync failed: ${e.message}` });
-        }
+        addSourceMutation.mutate(newUrl);
     };
 
     const handleCreateFeed = async () => {
@@ -143,8 +151,7 @@ export default function Dashboard() {
         if (error) {
             alert('Error creating feed: ' + error.message);
         } else {
-            console.log('Feed created:', data);
-            fetchFeeds();
+            queryClient.invalidateQueries({ queryKey: ['feeds'] });
         }
     };
 
@@ -207,7 +214,7 @@ export default function Dashboard() {
                             <FeedCard
                                 key={feed.id}
                                 feed={feed}
-                                onDelete={() => handleDeleteFeed(feed.id)}
+                                onDelete={() => deleteFeedMutation.mutate(feed.id)}
                                 onEdit={() => setEditingFeed(feed)}
                             />
                         ))}
@@ -230,10 +237,10 @@ export default function Dashboard() {
                     />
                     <button
                         onClick={handleAddSource}
-                        disabled={adding || !newUrl}
+                        disabled={addSourceMutation.isPending || !newUrl}
                         className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
                     >
-                        {adding ? 'Adding...' : 'Add Source'}
+                        {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
                     </button>
                 </div>
                 {message && (
@@ -254,8 +261,8 @@ export default function Dashboard() {
                             <SourceCard
                                 key={source.id}
                                 source={source}
-                                onSync={() => handleResync(source.id)}
-                                onDelete={() => handleDelete(source.id)}
+                                onSync={() => syncSourceMutation.mutate(source.id)}
+                                onDelete={() => deleteSourceMutation.mutate(source.id)}
                             />
                         ))}
                     </div>
@@ -269,8 +276,7 @@ export default function Dashboard() {
                         feed={editingFeed}
                         onClose={() => setEditingFeed(null)}
                         onUpdate={() => {
-                            fetchFeeds();
-                            // fetchSources(); // Sources might change status if linked?
+                            queryClient.invalidateQueries({ queryKey: ['feeds'] });
                         }}
                     />
                 )
