@@ -207,7 +207,7 @@ export default function Dashboard() {
                             <FeedCard
                                 key={feed.id}
                                 feed={feed}
-                                onDelete={() => { }}
+                                onDelete={() => handleDeleteFeed(feed.id)}
                                 onEdit={() => setEditingFeed(feed)}
                             />
                         ))}
