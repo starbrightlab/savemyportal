@@ -1,0 +1,9 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/dashboard/page": "/dashboard",
+  "/donate/page": "/donate",
+  "/mission/page": "/mission",
+  "/onboarding/page": "/onboarding",
+  "/page": "/"
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 const StepAddSource = ({ feedId, onComplete }) => {
     const [activeTab, setActiveTab] = useState('google'); // 'google' | 'icloud'
@@ -65,7 +65,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
     };
 
     return (
-        <div className="flex flex-col items-center space-y-6 w-full max-w-lg mx-auto animate-fadeIn">
+        <div className="flex flex-col items-center space-y-6 w-full max-w-lg mx-auto animate-fade-in">
             <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-white">Add Photos</h2>
                 <p className="text-gray-400">
@@ -133,7 +133,7 @@ const StepAddSource = ({ feedId, onComplete }) => {
                     </button>
 
                     {showHelp && (
-                        <div className="px-5 py-4 bg-gray-900/50 border-t border-gray-700 text-sm text-gray-400 space-y-3 animate-fadeIn">
+                        <div className="px-5 py-4 bg-gray-900/50 border-t border-gray-700 text-sm text-gray-400 space-y-3 animate-fade-in">
                             {activeTab === 'google' ? (
                                 <ol className="list-decimal list-inside space-y-2">
                                     <li>Open <strong>Google Photos</strong> and go to the album.</li>
