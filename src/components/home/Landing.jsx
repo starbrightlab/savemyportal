@@ -142,6 +142,31 @@ export default function Landing() {
                     </button>
                 </div>
             </div>
+            {/* Footer - Hidden in Frame Mode */}
+            <footer
+                className={`absolute bottom-0 w-full p-6 flex flex-col md:flex-row justify-between items-center text-xs text-white/40 z-20 transition-opacity duration-1000
+                ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            >
+                <div className="w-full md:w-1/3 text-center md:text-left hidden md:block">
+                    {/* Spacer for balance */}
+                </div>
+
+                <div className="w-full md:w-1/3 text-center mb-4 md:mb-0">
+                    <span>Made with <span className="text-red-500">♥</span> by </span>
+                    <a href="https://starbrightlab.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                        Starbright Lab
+                    </a>
+                </div>
+
+                <div className="w-full md:w-1/3 flex justify-center md:justify-end gap-6">
+                    <Link href="/privacy" className="hover:text-white transition-colors">
+                        Privacy
+                    </Link>
+                    <Link href="/terms" className="hover:text-white transition-colors">
+                        Terms
+                    </Link>
+                </div>
+            </footer>
         </div>
     );
 }

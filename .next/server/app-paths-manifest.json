@@ -5,5 +5,7 @@
   "/donate/page": "app/donate/page.js",
   "/mission/page": "app/mission/page.js",
   "/onboarding/page": "app/onboarding/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/privacy/page": "app/privacy/page.js",
+  "/terms/page": "app/terms/page.js"
 }
