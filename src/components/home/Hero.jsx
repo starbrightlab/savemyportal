@@ -78,8 +78,8 @@ export default function Hero() {
 
             {/* Content Overlay */}
             <div className="relative z-10 text-center px-4 max-w-4xl mx-auto animate-fade-in">
-                <h1 className="text-5xl md:text-7xl font-bold font-display tracking-tight mb-6">
-                    <span className="text-gradient">Turn your Portal</span><br />
+                <h1 className="text-5xl md:text-7xl font-bold font-display tracking-tight mb-6 text-white text-glow">
+                    <span className="text-electric-blue">Turn your Portal</span><br />
                     <span>into a Forever Frame.</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -90,7 +90,7 @@ export default function Hero() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link
                         href="/frame"
-                        className="px-8 py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-full text-lg font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105"
+                        className="px-8 py-4 bg-electric-blue text-white rounded-full text-lg font-bold hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105"
                     >
                         Start Frame
                     </Link>

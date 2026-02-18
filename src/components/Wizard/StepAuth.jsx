@@ -20,7 +20,7 @@ const StepAuth = ({ onNext }) => {
                 </p>
             </div>
 
-            <div className="p-1 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600">
+            <div className="p-1 rounded-xl bg-electric-blue">
                 <button
                     onClick={signInWithGoogle}
                     className="px-8 py-4 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-semibold text-lg transition-all flex items-center gap-3 w-full justify-center"

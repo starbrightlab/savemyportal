@@ -11,8 +11,10 @@ export default {
             colors: {
                 'deep-space': '#050505',
                 'electric-blue': '#3b82f6',
-                'cyber-purple': '#8b5cf6',
                 'soft-gold': '#fbbf24',
+                'starlight': '#f3f4f6',
+                'space-gray': '#9ca3af',
+                'surface': 'rgba(255, 255, 255, 0.05)',
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',

@@ -1,50 +1,44 @@
-
 # SaveMyPortal Architecture
 
-## Core Concept: The "Heartbeat" (T17)
-The central technical challenge of the Facebook Portal (Gen 2) is its aggressive power management, which puts the device to sleep after ~15 minutes of inactivity.
+## Overview
+SaveMyPortal is a **Next.js 16 (App Router)** application designed to run on the embedded Chromium browser (v98) of Facebook Portal devices.
 
-Through extensive testing, we discovered that the Portal's OS respects **active, user-initiated media sessions**.
+## 1. Core Concept: The "Heartbeat" (T17)
+The central technical challenge is the Portal's aggressive power management, which sleeps the device after ~15 minutes.
 
 **The Solution**:
-1.  **HeartbeatVideo**: A standard HTML5 `<video>` element plays a silent, looping MP4.
-2.  **User Initiation**: The user MUST manually tap the screen once to start playback. This registers a "trusted user gesture."
-3.  **Layering**: The video player is placed at `z-index: 0`. The actual application UI (photos, clock, controls) is placed at `z-index: 10` or higher.
-4.  **Result**: The browser keeps the device awake because it believes a video is being watched, even though the video is visually obscured by the UI.
+1.  **Wake Lock Video**: A silent, looping `<video>` element (`src/assets/silent.mp4`) plays in the background (`/frame` route).
+2.  **User Initiation**: The user MUST tap "Start Frame" to initiate playback. This registers a "trusted user gesture."
+3.  **Result**: The browser keeps the device awake because it believes media is playing.
 
-## Component Structure
+## 2. Technical Stack
+- **Framework**: Next.js 16 (App Router).
+- **Styling**: Tailwind CSS v4 (configured with PostCSS).
+- **Database/Auth**: Supabase (PostgreSQL + GoTrue).
+- **Hosting**: Netlify (Static Export / Edge Functions).
 
-```mermaid
-graph TD
-    App --> Layout
-    Layout --> HeartbeatVideo
-    Layout --> ContentLayer
-    ContentLayer --> Slideshow
-    ContentLayer --> Widgets
+## 3. Project Structure
+```
+src/
+├── app/                 # Next.js App Router Pages
+│   ├── frame/           # The "Appliance" view (Slideshow + WakeLock)
+│   ├── dashboard/       # Management view (Sources, Settings)
+│   ├── mission/         # Static content pages
+│   ├── layout.jsx       # Root layout + Providers
+│   └── page.jsx         # Smart Entry Point (Reduces click depth)
+├── components/
+│   ├── frame/           # Slideshow & Player components
+│   ├── home/            # Landing page & ReadyState components
+│   ├── layout/          # Navbar, Footer
+│   └── Wizard/          # Onboarding flow
+├── lib/                 # Supabase client & utilities
+└── context/             # Global React Context (Auth)
 ```
 
-### HeartbeatVideo (`src/components/HeartbeatVideo.jsx`)
-- **Responsibility**: Keep the device awake.
-- **Implementation**: Renders a mute, loop, playsInline video. Exposes a `.play()` method.
-- **Recovery**: Listens for `pause` or `ended` events to attempt auto-restart.
+## 4. Key Decisions
+*   **Next.js Migration**: Moved from Vite to Next.js to leverage file-based routing and better image optimization features in the future.
+*   **"Ready State" Logic**: `src/app/page.jsx` acts as a controller. If the user is logged in, it bypasses the marketing Hero and renders `ReadyState`, removing friction from the primary user journey.
+*   **Referrer Policy**: To load images from Google Photos without CORS errors, we explicitly set `referrerPolicy="no-referrer"` on `<img>` tags.
 
-### Layout (`src/components/Layout.jsx`)
-- **Responsibility**: Manage the stacking context and initial user interaction.
-- **State**: Tracks whether the heartbeat has started.
-- **Overlay**: Displays a "Tap to Start" screen until the user interacts.
-
-## Scalability & Integrations
-
-### Photo Storage
-To make this "scalable" and "super accessible," we recommend the following approaches for the Slideshow component:
-
-1.  **Local/Network URL (MVP)**: Allow users to input a URL to a JSON feed of image URLs.
-2.  **Google Photos API**: Requires OAuth flow. Best for most users but complex setup.
-3.  **Cloudflare R2 / AWS S3**: For "power users", pointing to a bucket.
-4.  **Home Assistant**: If running as a fully managed kiosk, integration with HA media browser.
-
-### Accessibility
-Since Portals are often used by older generations:
-- **Large Touch Targets**: All buttons should be min 48x48px (preferably 64px+).
-- **High Contrast**: Ensure text is readable against photo backgrounds (use text shadows or scrims).
-- **Simplified UI**: The "Photo Frame" mode should be zero-interaction once started.
+## 5. Design & UX
+See [DESIGN.md](./DESIGN.md) for the "North Star" philosophy and Visual Identity guidelines.

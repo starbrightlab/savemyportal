@@ -23,7 +23,7 @@ export default function ReadyState() {
                 {/* Primary Action */}
                 <Link
                     href="/frame"
-                    className="group relative inline-flex items-center justify-center px-12 py-8 bg-gradient-to-br from-electric-blue to-blue-700 rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all duration-300 transform hover:scale-105"
+                    className="group relative inline-flex items-center justify-center px-12 py-8 bg-electric-blue rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.3)] hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all duration-300 transform hover:scale-105"
                 >
                     <div className="flex flex-col items-center gap-3">
                         <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

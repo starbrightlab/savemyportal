@@ -53,6 +53,12 @@
       "namedRegex": "^/donate(?:/)?$"
     },
     {
+      "page": "/frame",
+      "regex": "^/frame(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/frame(?:/)?$"
+    },
+    {
       "page": "/mission",
       "regex": "^/mission(?:/)?$",
       "routeKeys": {},
