@@ -1,6 +1,5 @@
 import './globals.css';
 import { Inter, Outfit } from 'next/font/google';
-import Navbar from '@/components/layout/Navbar';
 import { Providers } from './providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -9,6 +8,10 @@ const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 export const metadata = {
     title: 'SaveMyPortal',
     description: 'Repurpose your Facebook Portal as a premium photo frame.',
+    icons: {
+        icon: '/savemyportal-logo-white.ico',
+        apple: '/savemyportal-logo-white.png',
+    },
 };
 
 export default function RootLayout({ children }) {
