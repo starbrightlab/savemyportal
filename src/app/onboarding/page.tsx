@@ -5,13 +5,42 @@ import StepAuth from '@/components/Wizard/StepAuth';
 import StepCreateFeed from '@/components/Wizard/StepCreateFeed';
 import StepAddSource from '@/components/Wizard/StepAddSource';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 const Onboarding = () => {
     const [step, setStep] = useState(0);
     const [feedId, setFeedId] = useState<string | null>(null);
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth(); // Assuming useAuth exposes loading
+
+    // Check for existing configuration
+    React.useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setStep(0);
+            return;
+        }
+
+        const checkConfig = async () => {
+            // Check if user has any feeds
+            const { data: feeds } = await supabase.from('feeds').select('id').eq('user_id', user.id).limit(1);
+
+            if (feeds && feeds.length > 0) {
+                // User has feeds, they are "onboarded". Redirect to home/dashboard.
+                console.log("[Onboarding] User has existing configuration. Redirecting to home.");
+                router.replace('/');
+            } else {
+                // User has no feeds, move to Step 1 (Create Feed)
+                setStep(1);
+            }
+        };
+
+        checkConfig();
+    }, [user, authLoading, router]);
 
     const handleAuthDone = () => {
+        // This might be redundant now if the useEffect handles it, but good for explicit "Next" clicks
         setStep(1);
     };
 
