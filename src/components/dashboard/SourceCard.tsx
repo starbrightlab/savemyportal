@@ -2,15 +2,9 @@
 
 import { useState } from 'react';
 
-interface Source {
-    id: string;
-    name?: string;
-    url?: string;
-    type: 'google_photos' | 'icloud' | string;
-    status: 'active' | 'error' | 'pending' | string;
-    last_scraped_at?: string;
-    error_message?: string;
-}
+import { Database } from '@/lib/database.types';
+
+type Source = Database['public']['Tables']['sources']['Row'];
 
 interface SourceCardProps {
     source: Source;
@@ -54,7 +48,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                     source.status === 'error' ? 'bg-red-500/20 text-red-400' :
                         'bg-yellow-500/20 text-yellow-400'
                     }`}>
-                    {source.status.toUpperCase()}
+                    {(source.status || 'pending').toUpperCase()}
                 </div>
             </div>
 

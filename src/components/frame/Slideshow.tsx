@@ -2,8 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Database } from '@/lib/database.types';
 
-export interface FeedConfig {
+type FeedRow = Database['public']['Tables']['feeds']['Row'];
+
+// Define locally what specific JSON config we expect
+interface FeedConfig {
     interval?: number | string;
     fit?: 'cover' | 'contain';
     show_clock?: boolean;
@@ -15,9 +19,9 @@ export interface FeedConfig {
     };
 }
 
-export interface Feed {
-    id: string;
-    config: FeedConfig;
+// Enhance the DB row with our parsed config type
+export interface Feed extends Omit<FeedRow, 'config'> {
+    config?: FeedConfig;
 }
 
 interface Photo {
@@ -28,14 +32,13 @@ interface Photo {
 }
 
 interface SlideshowProps {
-    user?: any;
+    user?: any; // To be strictly typed in next phase
     feed?: Feed | null;
 }
 
 export default function Slideshow({ feed }: SlideshowProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [photos, setPhotos] = useState<Photo[]>([]);
-    // const [loading, setLoading] = useState(true); // TODO: Implement loading state UI
 
     // Default Config
     const config = feed?.config || {};
@@ -43,8 +46,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
     const showWeather = config.show_weather || false;
-
-
 
     const [sleeping, setSleeping] = useState(false);
 
@@ -98,7 +99,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         query = query.in('source_id', sourceIds);
                     } else {
                         // Feed has no sources? Return empty or handle gracefully
-                        // query = query.in('source_id', []); // This would return 0 items
                     }
                 }
 
@@ -107,7 +107,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 if (data && data.length > 0) {
                     userPhotos = data.map(item => ({
                         id: item.id,
-                        source_id: item.source_id, // Vital for refresh logic
+                        source_id: item.source_id,
                         url: item.url,
                         credit: 'Shared Album'
                     }));
@@ -117,8 +117,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
             if (userPhotos.length > 0) {
                 // Use Proxy for all images to avoid CORS/Referrer issues (especially iCloud/Google)
                 // We construct the URL to point to our edge function
-                /* eslint-disable @typescript-eslint/no-explicit-any */
-                const processedPhotos = userPhotos.map((p: any) => {
+                const processedPhotos = userPhotos.map((p) => {
                     let finalUrl = p.url;
 
                     // Optimization for Google Photos (still useful even with proxy)
@@ -128,7 +127,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
                     return {
                         ...p,
-                        source_id: p.source_id, // Ensure we pass this through
                         // supabase.functions.invokeUrl is not directly exposed, so we build it manually
                         // standard format: https://[project-ref].supabase.co/functions/v1/proxy-image?url=[encoded_url]
                         url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
@@ -136,7 +134,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 });
                 setPhotos(processedPhotos);
             }
-            // setLoading(false);
         };
 
         loadPhotos();
@@ -175,7 +172,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         style={{ objectFit: objectFit }}
                         referrerPolicy="no-referrer"
                         onError={(e) => {
-                            // Cast target to HTMLImageElement to access dataset
                             const target = e.target as HTMLImageElement;
                             console.log("Image failed to load:", photo.id);
 
@@ -183,34 +179,10 @@ export default function Slideshow({ feed }: SlideshowProps) {
                             if (target.dataset.retried) return;
                             target.dataset.retried = "true";
 
-                            // Track consecutive failures
-                            // We use a global or ref approach for simplicity in this component scope
-                            const win = window as any;
-                            win.consecutiveFailures = (win.consecutiveFailures || 0) + 1;
-
-                            // If we hit threshold (e.g., 3 failures), assume source expired
-                            if (win.consecutiveFailures >= 3) {
-                                console.warn("Multiple failures detected. Triggering aggressive refresh for source:", photo.source_id);
-
-                                // 1. Reset Counter
-                                win.consecutiveFailures = 0;
-
-                                // 2. Trigger Source Refresh
-                                if (photo.source_id) {
-                                    supabase.functions.invoke('source-manager', {
-                                        body: { sourceId: photo.source_id }
-                                    }).then(async () => {
-                                        console.log("Source refreshed. Reloading slideshow data...");
-                                        // 3. Force re-fetch of photos by toggling a key or reloading state
-                                        // Simple way: Reload page to get fresh URLs from DB
-                                        window.location.reload();
-                                    });
-                                }
-                            } else {
-                                // Just skip to next slide quickly to avoid staring at broken image
-                                const nextIndex = (currentImageIndex + 1) % photos.length;
-                                setCurrentImageIndex(nextIndex);
-                            }
+                            // Graceful degradation: Simply skip to the next slide
+                            // This prevents the "white screen of death" or boot loops
+                            const nextIndex = (currentImageIndex + 1) % photos.length;
+                            setCurrentImageIndex(nextIndex);
                         }}
                     />
                 </div>

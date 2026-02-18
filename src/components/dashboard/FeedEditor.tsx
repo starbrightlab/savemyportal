@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+import { Database } from '@/lib/database.types';
+
+type FeedRow = Database['public']['Tables']['feeds']['Row'];
+type SourceRow = Database['public']['Tables']['sources']['Row'];
+
 interface FeedConfig {
     interval: number;
     transition: string;
@@ -16,18 +21,12 @@ interface FeedConfig {
     };
 }
 
-interface Feed {
-    id: string;
-    name: string;
+interface Feed extends Omit<FeedRow, 'config'> {
     config?: FeedConfig;
 }
 
-interface Source {
-    id: string;
-    name: string;
-    url?: string;
-    type?: string;
-}
+// Source items are simple enough to use the Row directly, but we can alias it if we add extra UI fields later
+type Source = SourceRow;
 
 interface FeedEditorProps {
     feed: Feed;

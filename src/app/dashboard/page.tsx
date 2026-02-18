@@ -10,6 +10,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { Database } from '@/lib/database.types';
+
+type FeedRow = Database['public']['Tables']['feeds']['Row'];
+type SourceRow = Database['public']['Tables']['sources']['Row'];
+
 interface FeedConfig {
     interval: number;
     transition: string;
@@ -23,25 +28,11 @@ interface FeedConfig {
     };
 }
 
-interface Feed {
-    id: string;
-    name: string;
+interface Feed extends Omit<FeedRow, 'config'> {
     config?: FeedConfig;
-    created_at?: string;
-    user_id?: string;
 }
 
-interface Source {
-    id: string;
-    url: string;
-    type: string;
-    status: string;
-    created_at?: string;
-    user_id?: string;
-    name?: string;
-    last_scraped_at?: string;
-    error_message?: string;
-}
+type Source = SourceRow;
 
 interface Message {
     type: 'success' | 'error' | 'info';
@@ -252,7 +243,7 @@ export default function Dashboard() {
                             <FeedCard
                                 key={feed.id}
                                 feed={feed}
-                                onDelete={() => deleteFeedMutation.mutate(feed.id)}
+                                onDelete={() => feed.id && deleteFeedMutation.mutate(feed.id)}
                                 onEdit={() => setEditingFeed(feed)}
                             />
                         ))}
