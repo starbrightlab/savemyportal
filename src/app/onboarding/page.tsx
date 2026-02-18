@@ -14,29 +14,59 @@ const Onboarding = () => {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth(); // Assuming useAuth exposes loading
 
+    const [isChecking, setIsChecking] = useState(true);
+
     // Check for existing configuration
     React.useEffect(() => {
         if (authLoading) return;
+
         if (!user) {
+            setIsChecking(false);
             setStep(0);
             return;
         }
 
-        const checkConfig = async () => {
-            // Check if user has any feeds
-            const { data: feeds } = await supabase.from('feeds').select('id').eq('user_id', user.id).limit(1);
+        const checkAccount = async () => {
+            try {
+                // Check if user has any feeds with sources
+                // We need to verify if they have a FUNCTIONAL setup, i.e., at least one feed.
+                // The user requirement says "feed set up with sources".
+                // Let's check for feeds first.
+                const { data: feeds } = await supabase
+                    .from('feeds')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .limit(1);
 
-            if (feeds && feeds.length > 0) {
-                // User has feeds, they are "onboarded". Redirect to home/dashboard.
-                console.log("[Onboarding] User has existing configuration. Redirecting to home.");
-                router.replace('/');
-            } else {
-                // User has no feeds, move to Step 1 (Create Feed)
+                if (feeds && feeds.length > 0) {
+                    // Check for sources connected to this feed? 
+                    // Or just any sources?
+                    // User said: "feed set up ... with the sources connected to it".
+                    // Let's check feed_sources for the found feed.
+
+                    const { count } = await supabase
+                        .from('feed_sources')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('feed_id', feeds[0].id);
+
+                    if (count && count > 0) {
+                        console.log("[Onboarding] Valid configuration found. Redirecting to home.");
+                        router.replace('/');
+                        return;
+                    }
+                }
+
+                // If we get here, they need to onboard.
                 setStep(1);
+            } catch (e) {
+                console.error("Error checking account:", e);
+                setStep(1); // Default to onboarding on error
+            } finally {
+                setIsChecking(false);
             }
         };
 
-        checkConfig();
+        checkAccount();
     }, [user, authLoading, router]);
 
     const handleAuthDone = () => {
@@ -52,6 +82,15 @@ const Onboarding = () => {
     const handleComplete = () => {
         router.push('/');
     };
+
+    if (authLoading || isChecking) {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric-blue mb-4"></div>
+                <p className="text-gray-400 text-sm tracking-wide uppercase animate-pulse">Loading Account...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-black relative flex flex-col items-center justify-center p-4 overflow-hidden">
