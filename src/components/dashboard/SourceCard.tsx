@@ -74,7 +74,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                     {loading ? 'Syncing...' : 'Sync Now'}
                 </button>
                 <button
-                    onClick={() => onDelete(source.id)}
+                    onClick={handleDelete}
                     className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-semibold transition-colors"
                 >
                     Delete

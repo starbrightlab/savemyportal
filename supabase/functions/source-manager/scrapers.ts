@@ -99,7 +99,7 @@ export async function scrapeGooglePhotos(url: string) {
                     break;
                 }
             }
-        } catch (e) {
+        } catch {
             // Ignore parse errors
         }
     }
@@ -148,7 +148,7 @@ export async function scrapeICloud(url: string) {
     const token = tokenMatch[1];
 
     // Default partition to start with
-    let partition = 'p64';
+    const partition = 'p64';
     let streamUrl = `https://${partition}-sharedstreams.icloud.com/${token}/sharedstreams/webstream`;
 
     // Helper to fetch stream data

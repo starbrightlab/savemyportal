@@ -10,11 +10,11 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
     const [activeTab, setActiveTab] = useState('google'); // 'google' | 'icloud'
     const [url, setUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState('idle'); // idle, validating, linking, success
     const [showHelp, setShowHelp] = useState(false);
 
-    const handleAddSource = async (e) => {
+    const handleAddSource = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!url.trim()) return;
 
@@ -28,7 +28,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
             const { data: sourceData, error: sourceError } = await supabase
                 .from('sources')
                 .upsert([{
-                    user_id: (await supabase.auth.getUser()).data.user.id,
+                    user_id: (await supabase.auth.getUser()).data.user!.id,
                     type,
                     url,
                     status: 'pending'
@@ -62,7 +62,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
 
         } catch (err) {
             console.error("Error adding source:", err);
-            setError(err.message || "Failed to add source");
+            setError((err as Error).message || "Failed to add source");
             setStatus('idle');
         } finally {
             setIsSubmitting(false);

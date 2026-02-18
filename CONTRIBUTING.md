@@ -6,10 +6,10 @@ Thank you for helping keep these devices out of the landfill!
 ## Target Hardware Constraints
 **Device**: Facebook Portal Plus (Gen 2)
 **OS**: Portal OS (Android-based Kiosk)
-**Browser**: Chrome 98 (WebView)
+**Browser**: Chrome 98 (WebView) - **DO NOT UPGRADE DEPENDENCIES WITHOUT VERIFICATION**
 
 ### Critical Compatibility Notes
-Because we are targeting a specific, older browser version (early 2022), you must adhere to the following constraints:
+Because we are targeting a specific, older browser version (early 2022), you must adhere to the following constraints. **Failure to do so will brick the app on the target hardware.**
 
 1.  **Image Formats**:
     - ✅ JPEG, PNG, WebP

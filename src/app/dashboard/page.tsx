@@ -63,7 +63,7 @@ export default function Dashboard() {
 
     // --- Queries ---
 
-    const { data: sources = [], isLoading: loadingSources } = useQuery<Source[]>({
+    const { data: sources = [] } = useQuery<Source[]>({
         queryKey: ['sources'],
         queryFn: async () => {
             const { data, error } = await supabase.from('sources').select('*').order('created_at', { ascending: false });
@@ -170,7 +170,7 @@ export default function Dashboard() {
         const name = prompt("Enter a name for your new feed (e.g., 'Living Room'):");
         if (!name) return;
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('feeds')
             .insert({
                 user_id: user?.id,
