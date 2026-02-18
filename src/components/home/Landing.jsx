@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 import Slideshow from '@/components/frame/Slideshow';
 import WakeLock from '@/components/frame/WakeLock';
 import Link from 'next/link';
@@ -13,6 +14,25 @@ export default function Landing() {
     const [showControls, setShowControls] = useState(false);
     const wakeLockRef = useRef(null);
     const controlsTimeoutRef = useRef(null);
+    const [feed, setFeed] = useState(null);
+
+    useEffect(() => {
+        if (user) {
+            // Fetch the user's first feed to control the frame
+            const fetchFeed = async () => {
+                const { data } = await supabase
+                    .from('feeds')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (data) setFeed(data);
+            };
+            fetchFeed();
+        }
+    }, [user]);
 
     const router = useRouter();
 
