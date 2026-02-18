@@ -5,5 +5,7 @@
   "/donate/page": "/donate",
   "/mission/page": "/mission",
   "/onboarding/page": "/onboarding",
-  "/page": "/"
+  "/page": "/",
+  "/privacy/page": "/privacy",
+  "/terms/page": "/terms"
 }

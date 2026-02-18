@@ -25,3 +25,10 @@ dist-ssr
 
 # Sensitive files
 .env
+.env*.local
+
+# Build artifacts
+.next
+out
+build
+dist
