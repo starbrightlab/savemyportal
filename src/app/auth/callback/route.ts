@@ -8,7 +8,17 @@ export async function GET(request: Request) {
     // if "next" is in param, use it as the redirect target
     const next = searchParams.get('next') ?? '/'
 
-    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}`);
+    // Determine the base URL for redirection
+    // In production/preview, we want to respect the environment URL if set, 
+    // but for previews, the origin request came from is usually best.
+    // However, if the user complains about "random subdomains", we might want to force the site URL.
+    // Let's try to use the request origin to ensure the cookie set corresponds to the domain the user is on.
+    // If we redirect to a different domain, the cookie might effectively be lost (cross-domain).
+    // So sticking to `origin` is technically correct for Auth flow stability.
+    // But let's log it clearly.
+    const baseUrl = origin; // Keep origin to match cookie domain context
+
+    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}, origin: ${origin}`);
 
     if (code) {
         const cookieStore = cookies()
