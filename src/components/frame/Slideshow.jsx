@@ -11,7 +11,7 @@ export default function Slideshow({ user, feed }) {
 
     // Default Config
     const config = feed?.config || {};
-    const intervalTime = (config.interval || 10) * 1000;
+    const intervalTime = (parseInt(config.interval) || 10) * 1000;
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
     const showWeather = config.show_weather || false;
