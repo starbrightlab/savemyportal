@@ -29,13 +29,13 @@ interface Photo {
 
 interface SlideshowProps {
     user?: any;
-    feed?: Feed;
+    feed?: Feed | null;
 }
 
-export default function Slideshow({ user, feed }: SlideshowProps) {
+export default function Slideshow({ feed }: SlideshowProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [photos, setPhotos] = useState<Photo[]>([]);
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true); // TODO: Implement loading state UI
 
     // Default Config
     const config = feed?.config || {};
@@ -44,37 +44,39 @@ export default function Slideshow({ user, feed }: SlideshowProps) {
     const showClock = config.show_clock || false;
     const showWeather = config.show_weather || false;
 
-    // Sleep Schedule Logic
-    const isSleeping = () => {
-        if (!config.sleep_schedule?.enabled) return false;
-        const now = new Date();
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const { start, end } = config.sleep_schedule;
 
-        if (start > end) {
-            // Spans midnight (e.g. 22:00 to 07:00)
-            return currentTime >= start || currentTime < end;
-        } else {
-            // Standard (e.g. 09:00 to 17:00)
-            return currentTime >= start && currentTime < end;
-        }
-    };
 
     const [sleeping, setSleeping] = useState(false);
 
     // Check sleep status every minute
     useEffect(() => {
-        const checkSleep = () => setSleeping(isSleeping());
+        const checkSleep = () => {
+            if (!config.sleep_schedule?.enabled) {
+                setSleeping(false);
+                return;
+            }
+            const now = new Date();
+            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const { start, end } = config.sleep_schedule;
+
+            if (start > end) {
+                // Spans midnight
+                setSleeping(currentTime >= start || currentTime < end);
+            } else {
+                setSleeping(currentTime >= start && currentTime < end);
+            }
+        };
+
         checkSleep();
         const timer = setInterval(checkSleep, 60000);
         return () => clearInterval(timer);
-    }, [feed]);
+    }, [config.sleep_schedule?.enabled, config.sleep_schedule?.start, config.sleep_schedule?.end]);
 
     // Fetch photos on mount
     useEffect(() => {
         const loadPhotos = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            let userPhotos = [];
+            let userPhotos: Photo[] = [];
 
             if (session?.user) {
                 let query = supabase
@@ -115,7 +117,8 @@ export default function Slideshow({ user, feed }: SlideshowProps) {
             if (userPhotos.length > 0) {
                 // Use Proxy for all images to avoid CORS/Referrer issues (especially iCloud/Google)
                 // We construct the URL to point to our edge function
-                userPhotos = userPhotos.map(p => {
+                /* eslint-disable @typescript-eslint/no-explicit-any */
+                const processedPhotos = userPhotos.map((p: any) => {
                     let finalUrl = p.url;
 
                     // Optimization for Google Photos (still useful even with proxy)
@@ -131,9 +134,9 @@ export default function Slideshow({ user, feed }: SlideshowProps) {
                         url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
                     };
                 });
-                setPhotos(userPhotos);
+                setPhotos(processedPhotos);
             }
-            setLoading(false);
+            // setLoading(false);
         };
 
         loadPhotos();

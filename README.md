@@ -8,6 +8,14 @@
 - **Photo Frame**: (Coming Soon) High-quality slideshow with support for local and cloud sources.
 - **Dashboard**: (Coming Soon) Weather, Clock, and Home Assistant integrations.
 
+## ⚠️ Hardware Compatibility (Critical)
+This project is built specifically for the **Facebook Portal Plus (Gen 2)**, which runs a modified Android version with **Chrome 98 System WebView**.
+**Do not upgrade dependencies** (Next.js, React, Tailwind) beyond versions compatible with Chrome 98.
+- **Next.js**: Keep at v14 (v15+ may break)
+- **React**: Keep at v18 (v19 is untested)
+- **Tailwind**: Keep at v3.4 (v4 uses `@layer` which requires Chrome 99+)
+
+
 ## Getting Started
 
 **Live Demo**: [savemyportal.netlify.app](https://savemyportal.netlify.app) (Run on your Portal!)

@@ -1,11 +1,1 @@
-{
-  "/_global-error/page": "/_global-error",
-  "/_not-found/page": "/_not-found",
-  "/dashboard/page": "/dashboard",
-  "/donate/page": "/donate",
-  "/mission/page": "/mission",
-  "/onboarding/page": "/onboarding",
-  "/page": "/",
-  "/privacy/page": "/privacy",
-  "/terms/page": "/terms"
-}
+{"/_not-found/page":"/_not-found","/privacy/page":"/privacy","/onboarding/page":"/onboarding","/terms/page":"/terms","/dashboard/page":"/dashboard","/page":"/","/mission/page":"/mission","/donate/page":"/donate"}

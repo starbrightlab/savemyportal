@@ -1,3 +1,6 @@
+/** @type {import('tailwindcss').Config} */
+// CRITICAL: Keep Tailwind v3.4. Create-react-app / Next.js < 15 do not support v4 reliably,
+// and v4 relies on CSS layers @layer (Chrome 99+) which breaks on Portal (Chrome 98).
 export default {
     content: [
         "./src/**/*.{js,ts,jsx,tsx}",

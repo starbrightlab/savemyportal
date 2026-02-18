@@ -1,7 +1,12 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
+/* 
+  NOTE: Avoid using CSS @layer (Chrome 99+) manually.
+  Target hardware: Facebook Portal Gen 2 (Chrome 98).
+*/
 
-@import "tailwindcss";
 
 :root {
   --background: #050505;

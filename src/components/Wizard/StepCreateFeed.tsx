@@ -10,9 +10,9 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
     const { user } = useAuth();
     const [feedName, setFeedName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!feedName.trim()) return;
 
@@ -22,7 +22,7 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
         try {
             const { data, error } = await supabase
                 .from('feeds')
-                .insert([{ user_id: user.id, name: feedName }])
+                .insert([{ user_id: user!.id, name: feedName }])
                 .select()
                 .single();
 
@@ -32,7 +32,7 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
             onNext({ feedId: data.id, feedName: data.name });
         } catch (err) {
             console.error("Error creating feed:", err);
-            setError(err.message);
+            setError((err as Error).message || "Unknown error");
         } finally {
             setIsSubmitting(false);
         }

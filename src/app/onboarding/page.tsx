@@ -76,7 +76,7 @@ const Onboarding = () => {
                 <div className="bg-gray-900/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-gray-800/50 min-h-[400px] flex flex-col justify-center">
                     {step === 0 && <StepAuth onNext={handleAuthDone} />}
                     {step === 1 && <StepCreateFeed onNext={handleFeedCreated} />}
-                    {step === 2 && <StepAddSource feedId={feedId} onComplete={handleComplete} />}
+                    {step === 2 && feedId && <StepAddSource feedId={feedId} onComplete={handleComplete} />}
                 </div>
             </div>
         </div>

@@ -45,8 +45,8 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
         show_weather: false,
         sleep_schedule: { enabled: false, start: '22:00', end: '07:00' }
     });
-    const [allSources, setAllSources] = useState([]);
-    const [selectedSourceIds, setSelectedSourceIds] = useState(new Set());
+    const [allSources, setAllSources] = useState<Source[]>([]);
+    const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -102,7 +102,7 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
         setSaving(false);
     };
 
-    const toggleSource = (id) => {
+    const toggleSource = (id: string) => {
         const newSet = new Set(selectedSourceIds);
         if (newSet.has(id)) newSet.delete(id);
         else newSet.add(id);
@@ -232,7 +232,7 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                                     checked={config.sleep_schedule?.enabled || false}
                                     onChange={(e) => setConfig({
                                         ...config,
-                                        sleep_schedule: { ...config.sleep_schedule, enabled: e.target.checked }
+                                        sleep_schedule: { ...(config.sleep_schedule || { enabled: false, start: '22:00', end: '07:00' }), enabled: e.target.checked }
                                     })}
                                 />
                                 Enable
@@ -248,7 +248,7 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                                     value={config.sleep_schedule?.start || '22:00'}
                                     onChange={(e) => setConfig({
                                         ...config,
-                                        sleep_schedule: { ...config.sleep_schedule, start: e.target.value }
+                                        sleep_schedule: { ...(config.sleep_schedule || { enabled: false, start: '22:00', end: '07:00' }), start: e.target.value }
                                     })}
                                 />
                             </div>
@@ -260,7 +260,7 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                                     value={config.sleep_schedule?.end || '07:00'}
                                     onChange={(e) => setConfig({
                                         ...config,
-                                        sleep_schedule: { ...config.sleep_schedule, end: e.target.value }
+                                        sleep_schedule: { ...(config.sleep_schedule || { enabled: false, start: '22:00', end: '07:00' }), end: e.target.value }
                                     })}
                                 />
                             </div>
