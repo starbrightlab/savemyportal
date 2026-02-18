@@ -9,6 +9,8 @@ import FeedEditor from '@/components/dashboard/FeedEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useFeeds, useCreateFeed, useDeleteFeed } from '@/hooks/useFeeds';
+import { useCreateSource, useDeleteSource, useUpdateSource } from '@/hooks/useSources';
 
 import { Database } from '@/lib/database.types';
 
@@ -54,7 +56,10 @@ export default function Dashboard() {
 
     // --- Queries ---
 
-    const { data: sources = [] } = useQuery<Source[]>({
+    const { data: sources = [], isLoading: loadingSources } = useQuery({ // Keeping raw useQuery for all sources for now or create useAllSources?
+        // Let's stick to the generated useSources which takes a feedId.
+        // I should probably make a new hook `useAllSources` or just use raw useQuery here as it was.
+        // The implementation in FeedEditor used raw useQuery too.
         queryKey: ['sources'],
         queryFn: async () => {
             const { data, error } = await supabase.from('sources').select('*').order('created_at', { ascending: false });
@@ -64,17 +69,15 @@ export default function Dashboard() {
         enabled: !!user,
     });
 
-    const { data: feeds = [], isLoading: loadingFeeds } = useQuery<Feed[]>({
-        queryKey: ['feeds'],
-        queryFn: async () => {
-            const { data, error } = await supabase.from('feeds').select('*').order('created_at', { ascending: false });
-            if (error) throw error;
-            return data as Feed[];
-        },
-        enabled: !!user,
-    });
+    // Use customized hooks for Feeds
+    const { data: feeds = [], isLoading: loadingFeeds } = useFeeds(user?.id);
 
     // --- Mutations ---
+    const createFeedMutation = useCreateFeed();
+    const deleteFeedMutation = useDeleteFeed();
+    const createSourceMutation = useCreateSource();
+    const deleteSourceMutation = useDeleteSource();
+    const updateSourceMutation = useUpdateSource(); // If needed
 
     const addSourceMutation = useMutation({
         mutationFn: async (url: string) => {
@@ -82,6 +85,10 @@ export default function Dashboard() {
             if (!type) throw new Error('Invalid URL');
 
             // 1. Insert Source
+            // Use custom hook logic? The custom hook `useCreateSource` just inserts.
+            // This component has extra logic (Server Function Invoke).
+            // So we'll keep this custom mutation here, but maybe leverage cache keys from hooks file if exported.
+
             const { data: source, error } = await supabase
                 .from('sources')
                 .insert({ user_id: user?.id, url, type, status: 'pending' })
@@ -104,26 +111,6 @@ export default function Dashboard() {
         },
         onError: (error) => {
             setMessage({ type: 'error', text: `Error: ${error.message}` });
-        }
-    });
-
-    const deleteSourceMutation = useMutation({
-        mutationFn: async (id: string) => {
-            const { error } = await supabase.from('sources').delete().eq('id', id);
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['sources'] });
-        }
-    });
-
-    const deleteFeedMutation = useMutation({
-        mutationFn: async (id: string) => {
-            const { error } = await supabase.from('feeds').delete().eq('id', id);
-            if (error) throw error;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['feeds'] });
         }
     });
 
@@ -159,12 +146,11 @@ export default function Dashboard() {
 
     const handleCreateFeed = async () => {
         const name = prompt("Enter a name for your new feed (e.g., 'Living Room'):");
-        if (!name) return;
+        if (!name || !user?.id) return;
 
-        const { error } = await supabase
-            .from('feeds')
-            .insert({
-                user_id: user?.id,
+        try {
+            await createFeedMutation.mutateAsync({
+                user_id: user.id,
                 name: name,
                 config: {
                     interval: 10,
@@ -172,15 +158,10 @@ export default function Dashboard() {
                     fit: 'cover',
                     show_clock: true,
                     show_weather: false
-                }
-            })
-            .select()
-            .single();
-
-        if (error) {
+                } as any // Config JSON compatibility
+            });
+        } catch (error: any) {
             alert('Error creating feed: ' + error.message);
-        } else {
-            queryClient.invalidateQueries({ queryKey: ['feeds'] });
         }
     };
 
