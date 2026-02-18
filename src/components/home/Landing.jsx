@@ -57,7 +57,7 @@ export default function Landing() {
 
             {/* Background Layer: The Slideshow */}
             <div className="absolute inset-0 z-0">
-                <Slideshow speed={15000} />
+                <Slideshow speed={15000} user={user} feed={feed} />
             </div>
 
             {/* Overlay Layer: Visible when NOT in Frame Mode */}
