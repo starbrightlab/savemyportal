@@ -41,19 +41,9 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Text Gradients */
-.text-gradient {
-  background: linear-gradient(to right, #3b82f6, #8b5cf6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.text-gradient-gold {
-  background: linear-gradient(to right, #fbbf24, #f97316);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* Text Utilities */
+.text-glow {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
 /* Scrollbar Hide */

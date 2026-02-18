@@ -114,7 +114,7 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
                 <div>
-                    <h1 className="text-4xl md:text-6xl font-bold font-display text-gradient mb-2">Dashboard</h1>
+                    <h1 className="text-4xl md:text-6xl font-bold font-display text-white mb-2">Dashboard</h1>
                     <p className="text-gray-400">Manage your connected albums and device settings.</p>
                 </div>
                 <div className="flex gap-4">
@@ -144,7 +144,7 @@ export default function Dashboard() {
                     <button
                         onClick={handleAddSource}
                         disabled={adding || !newUrl}
-                        className="px-8 py-4 bg-gradient-to-r from-electric-blue to-blue-600 rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_15px_rgba(59,130,246,0.4)]"
+                        className="px-8 py-4 bg-electric-blue text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_15px_rgba(59,130,246,0.4)]"
                     >
                         {adding ? 'Adding...' : 'Add Source'}
                     </button>

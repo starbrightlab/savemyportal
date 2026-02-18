@@ -4,7 +4,7 @@ export default function Navbar() {
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 glass-nav">
             <div className="flex items-center gap-2">
-                <Link href="/" className="text-2xl font-bold font-display text-gradient tracking-tight hover:opacity-80 transition-opacity">
+                <Link href="/" className="text-2xl font-bold font-display text-white text-glow tracking-tight hover:opacity-80 transition-opacity">
                     SaveMyPortal
                 </Link>
             </div>

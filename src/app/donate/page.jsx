@@ -9,7 +9,7 @@ export default function Donate() {
     return (
         <div className="min-h-screen pt-24 px-6 flex flex-col items-center">
             <div className="glass-card p-10 max-w-2xl w-full text-center space-y-8">
-                <h1 className="text-4xl md:text-6xl font-bold font-display text-gradient-gold">
+                <h1 className="text-4xl md:text-6xl font-bold font-display text-soft-gold">
                     Support the Project
                 </h1>
                 <p className="text-xl text-gray-300">
