@@ -3,6 +3,10 @@
 import { MouseEventHandler } from 'react';
 // import { supabase } from '@/lib/supabase'; // Unused in original file
 
+import { Database } from '@/lib/database.types';
+
+type FeedRow = Database['public']['Tables']['feeds']['Row'];
+
 interface FeedConfig {
     interval?: number;
     transition?: string;
@@ -11,9 +15,7 @@ interface FeedConfig {
     show_weather?: boolean;
 }
 
-interface Feed {
-    id: string;
-    name: string;
+interface Feed extends Omit<FeedRow, 'config'> {
     config?: FeedConfig;
 }
 
@@ -47,7 +49,7 @@ export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
                 </div>
                 <div className="flex gap-2">
                     <a
-                        href={`/?feedId=${feed.id}`}
+                        href={`/?feedId=${feed.id || ''}`}
                         className="text-electric-blue hover:text-blue-400 p-2"
                         title="Play on this device"
                     >
