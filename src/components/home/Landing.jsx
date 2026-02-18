@@ -18,17 +18,51 @@ export default function Landing() {
 
     useEffect(() => {
         if (user) {
-            // Fetch the user's first feed to control the frame
             const fetchFeed = async () => {
-                const { data } = await supabase
+                let feedIdToFetch = null;
+
+                // 1. Check URL param (Highest priority)
+                const params = new URLSearchParams(window.location.search);
+                const paramId = params.get('feedId');
+
+                if (paramId) {
+                    feedIdToFetch = paramId;
+                    // Persist for future visits on this device
+                    localStorage.setItem('active_feed_id', paramId);
+
+                    // Cleanup URL without refresh
+                    window.history.replaceState({}, '', '/');
+                } else {
+                    // 2. Check LocalStorage (Medium priority)
+                    feedIdToFetch = localStorage.getItem('active_feed_id');
+                }
+
+                let query = supabase
                     .from('feeds')
                     .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+                    .eq('user_id', user.id);
 
-                if (data) setFeed(data);
+                if (feedIdToFetch) {
+                    query = query.eq('id', feedIdToFetch);
+                } else {
+                    query = query.order('created_at', { ascending: false }).limit(1);
+                }
+
+                const { data } = await query.single(); // .single() might fail if no rows, but we handle it.
+
+                // If specific feed failed (deleted?), fallback to latest
+                if (!data && feedIdToFetch) {
+                    const { data: fallback } = await supabase
+                        .from('feeds')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+                    if (fallback) setFeed(fallback);
+                } else if (data) {
+                    setFeed(data);
+                }
             };
             fetchFeed();
         }

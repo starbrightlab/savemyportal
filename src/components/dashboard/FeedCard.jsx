@@ -26,6 +26,15 @@ export default function FeedCard({ feed, onDelete, onEdit }) {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <a
+                        href={`/?feedId=${feed.id}`}
+                        className="text-electric-blue hover:text-blue-400 p-2"
+                        title="Play on this device"
+                    >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    </a>
                     <button onClick={onEdit} className="text-gray-400 hover:text-white p-2">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
