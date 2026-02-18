@@ -114,7 +114,10 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
                 <div>
-                    <h1 className="text-4xl md:text-6xl font-bold font-display text-white mb-2">Dashboard</h1>
+                    <div className="flex items-center gap-4 mb-2">
+                        <img src="/savemyportal-logo-white.svg" alt="Logo" className="w-12 h-12" />
+                        <h1 className="text-4xl md:text-6xl font-bold font-display text-white">Dashboard</h1>
+                    </div>
                     <p className="text-gray-400">Manage your connected albums and device settings.</p>
                 </div>
                 <div className="flex gap-4">
@@ -124,7 +127,7 @@ export default function Dashboard() {
                     >
                         Sign Out
                     </button>
-                    <Link href="/frame" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
+                    <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
                         View Frame
                     </Link>
                 </div>

@@ -66,9 +66,13 @@ export default function Landing() {
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
-                    <h1 className="text-6xl md:text-8xl font-bold font-display text-white tracking-tighter text-glow">
-                        SaveMyPortal
-                    </h1>
+                    <div className="flex justify-center mb-8">
+                        <img
+                            src="/savemyportal-logo-white.svg"
+                            alt="SaveMyPortal Logo"
+                            className="w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-pulse-slow"
+                        />
+                    </div>
 
                     {!user ? (
                         /* GUEST STATE */

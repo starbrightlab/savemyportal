@@ -33,9 +33,13 @@ const Onboarding = () => {
             <div className="w-full max-w-2xl relative z-10">
                 {/* Header */}
                 <div className="text-center mb-10">
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        SaveMyPortal
-                    </h1>
+                    <div className="flex justify-center mb-6">
+                        <img
+                            src="/savemyportal-logo-white.svg"
+                            alt="SaveMyPortal Logo"
+                            className="w-24 h-24 drop-shadow-[0_0_20px_rgba(59,130,246,0.2)]"
+                        />
+                    </div>
                     <p className="text-gray-400 text-sm tracking-wide uppercase">Setup Wizard</p>
                 </div>
 
