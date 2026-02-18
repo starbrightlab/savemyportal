@@ -57,27 +57,31 @@ export default function Slideshow({ speed = 10000 }) {
     }, [photos.length, speed]);
 
     return (
-        <div className="absolute inset-0 w-full h-full bg-black overflow-hidden">
+        <div className="absolute inset-0 w-full h-full bg-deep-space overflow-hidden z-0">
             {photos.map((photo, index) => (
                 <div
                     key={photo.id || index}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'
                         }`}
                 >
+                    {/* Blurred Background Layer for Fill Effect */}
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
+                        style={{ backgroundImage: `url(${photo.url})` }}
+                    />
+
+                    {/* Main Image */}
                     <img
                         src={photo.url}
-                        alt="Background"
-                        className="w-full h-full object-contain" // Contain ensures full image visibility without crop
+                        alt="Frame Content"
+                        className="absolute inset-0 w-full h-full object-contain z-10"
                         referrerPolicy="no-referrer"
                     />
-                    {/* Optional: Subtle gradient at bottom for text readability if we add metadata */}
-                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
-                    {/* Photo Info */}
-                    <div className={`absolute bottom-6 right-6 text-white/60 text-sm font-medium transition-opacity duration-500 ${index === currentIndex ? 'opacity-100' : 'opacity-0'
-                        }`}>
+                    {/* Photo Info (Optional - Can be hidden via props later) */}
+                    {/* <div className="absolute bottom-6 right-6 text-white/60 text-sm font-medium z-20">
                         {photo.credit}
-                    </div>
+                    </div> */}
                 </div>
             ))}
         </div>

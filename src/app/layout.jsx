@@ -16,7 +16,6 @@ export default function RootLayout({ children }) {
         <html lang="en">
             <body className={`${inter.variable} ${outfit.variable} font-sans bg-deep-space text-white antialiased overflow-hidden`}>
                 <Providers>
-                    <Navbar />
                     <main className="relative w-screen h-screen overflow-hidden">
                         {children}
                     </main>
