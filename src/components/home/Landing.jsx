@@ -89,22 +89,26 @@ export default function Landing() {
                         </div>
                     ) : (
                         /* LOGGED IN STATE */
-                        <div className="space-y-8 animate-fade-in">
-                            <button
-                                onClick={startFrame}
-                                className="px-12 py-6 bg-electric-blue text-white rounded-2xl text-2xl font-bold hover:shadow-[0_0_40px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-3 mx-auto"
-                            >
-                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Start Frame
-                            </button>
+                        <div className="flex flex-col items-center gap-12 w-full">
+                            {/* CTA Button: Centered & Large */}
+                            <div className="flex-1 flex items-center justify-center w-full py-12">
+                                <button
+                                    onClick={startFrame}
+                                    className="px-20 py-10 bg-electric-blue border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
+                                >
+                                    <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Start Frame
+                                </button>
+                            </div>
 
-                            <div className="flex justify-center gap-6">
+                            {/* Secondary Controls - Pushed lower */}
+                            <div className="flex justify-center mt-8">
                                 <Link
                                     href="/dashboard"
-                                    className="px-6 py-2 text-sm font-medium text-gray-400 hover:text-white border border-white/10 rounded-full hover:bg-white/5 transition-colors"
+                                    className="px-8 py-3 text-base font-medium text-gray-300 hover:text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors backdrop-blur-sm"
                                 >
                                     Settings
                                 </Link>
