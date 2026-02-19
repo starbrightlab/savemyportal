@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTier } from '@/context/TierContext';
 import { useFeeds } from '@/hooks/useFeeds';
 import Slideshow from '@/components/frame/Slideshow';
 import FrameErrorBoundary from '@/components/frame/FrameErrorBoundary';
@@ -12,6 +13,7 @@ import type { Feed } from '@/types/feed';
 
 export default function Landing() {
     const { user, loading } = useAuth();
+    const { isPro } = useTier();
     const { data: feeds = [] } = useFeeds(user?.id);
     const [isFrameMode, setIsFrameMode] = useState(false);
     const [showControls, setShowControls] = useState(false);
@@ -232,7 +234,11 @@ export default function Landing() {
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="w-full md:w-1/3 text-center md:text-left hidden md:block">
-                    {/* Spacer for balance */}
+                    {user && !isPro && (
+                        <Link href="/upgrade" className="text-soft-gold/60 hover:text-soft-gold transition-colors">
+                            Upgrade to Pro
+                        </Link>
+                    )}
                 </div>
 
                 <div className="w-full md:w-1/3 text-center mb-4 md:mb-0">
