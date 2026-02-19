@@ -14,6 +14,7 @@ export interface FeedConfig {
     shuffle?: boolean;
     show_clock?: boolean;
     video_behavior?: VideoBehavior; // default 'full'
+    video_sound?: boolean; // default false (muted)
     sleep_schedule?: {
         enabled: boolean;
         start: string;

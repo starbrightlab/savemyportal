@@ -90,6 +90,14 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                         />
                         <span className="text-gray-300">Show Clock</span>
                     </label>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config.video_sound || false}
+                            onChange={(e) => handleChange('video_sound', e.target.checked)}
+                        />
+                        <span className="text-gray-300">Video Sound</span>
+                    </label>
                 </div>
             </div>
         </div>
