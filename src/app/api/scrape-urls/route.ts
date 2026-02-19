@@ -124,9 +124,20 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // 6. Tier-based video filtering — free tier gets photos only
+        const { data: profile } = await serviceClient
+            .from('user_profiles')
+            .select('tier')
+            .eq('user_id', user.id)
+            .single();
+
+        const filteredItems = profile?.tier === 'pro'
+            ? allItems
+            : allItems.filter(item => item.media_type !== 'video');
+
         return NextResponse.json({
-            items: allItems,
-            count: allItems.length,
+            items: filteredItems,
+            count: filteredItems.length,
             errors: errors.length > 0 ? errors : undefined,
         });
 

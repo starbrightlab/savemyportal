@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { useUpdateFeed } from '@/hooks/useFeeds';
 import { useAllSources } from '@/hooks/useSources';
+import { useTier } from '@/context/TierContext';
 import { Source } from '@/components/dashboard/feed-editor/types';
 import { SourceSelector } from '@/components/dashboard/feed-editor/SourceSelector';
 import { DisplaySettings } from '@/components/dashboard/feed-editor/DisplaySettings';
@@ -18,6 +19,7 @@ interface FeedEditorProps {
 }
 
 export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps) {
+    const { isPro } = useTier();
     const [name, setName] = useState(feed.name);
     const [config, setConfig] = useState<FeedConfig>((feed.config as FeedConfig) || {
         interval: 10,
@@ -130,18 +132,21 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                         availableSources={allSourcesData}
                         selectedSourceIds={selectedSourceIds}
                         onToggle={toggleSource}
+                        isPro={isPro}
                     />
 
                     {/* Display Settings */}
                     <DisplaySettings
                         config={config}
                         onChange={setConfig}
+                        isPro={isPro}
                     />
 
                     {/* Sleep Schedule */}
                     <ScheduleSettings
                         schedule={config.sleep_schedule}
                         onChange={(newSchedule) => setConfig({ ...config, sleep_schedule: newSchedule })}
+                        isPro={isPro}
                     />
 
                     {/* Footer Actions */}
