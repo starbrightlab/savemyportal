@@ -3,17 +3,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import Slideshow, { Feed } from '@/components/frame/Slideshow';
+import Slideshow from '@/components/frame/Slideshow';
+import FrameErrorBoundary from '@/components/frame/FrameErrorBoundary';
 import WakeLock, { WakeLockHandle } from '@/components/frame/WakeLock';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { Feed } from '@/types/feed';
 
 export default function Landing() {
     const { user, loading } = useAuth();
     const [isFrameMode, setIsFrameMode] = useState(false);
     const [showControls, setShowControls] = useState(false);
     const wakeLockRef = useRef<WakeLockHandle>(null);
-    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [feed, setFeed] = useState<Feed | null>(null);
 
     useEffect(() => {
@@ -111,7 +113,9 @@ export default function Landing() {
 
             {/* Background Layer: The Slideshow */}
             <div className="absolute inset-0 z-0">
-                <Slideshow user={user} feed={feed} />
+                <FrameErrorBoundary>
+                    <Slideshow feed={feed} />
+                </FrameErrorBoundary>
             </div>
 
             {/* Overlay Layer: Visible when NOT in Frame Mode */}

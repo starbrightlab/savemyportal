@@ -8,6 +8,14 @@ export async function middleware(request: NextRequest) {
         },
     })
 
+    // Derive the true origin from headers to avoid Netlify's internal URL.
+    // request.nextUrl uses request.url under the hood, which on Netlify
+    // resolves to the mutable deployment subdomain, not the custom domain.
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const host = forwardedHost || request.headers.get('host') || request.nextUrl.host
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const origin = `${protocol}://${host}`
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -45,7 +53,7 @@ export async function middleware(request: NextRequest) {
     // Protected routes
     if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
         console.log("[Middleware] Redirecting to /onboarding (No User)");
-        return NextResponse.redirect(new URL('/onboarding', request.url))
+        return NextResponse.redirect(`${origin}/onboarding`)
     }
 
     if (request.nextUrl.pathname === '/' && !user) {

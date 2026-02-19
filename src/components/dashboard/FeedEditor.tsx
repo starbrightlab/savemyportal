@@ -4,18 +4,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { useUpdateFeed } from '@/hooks/useFeeds';
+import { useAllSources } from '@/hooks/useSources';
 import { Source } from '@/components/dashboard/feed-editor/types';
 import { SourceSelector } from '@/components/dashboard/feed-editor/SourceSelector';
 import { DisplaySettings } from '@/components/dashboard/feed-editor/DisplaySettings';
 import { ScheduleSettings } from '@/components/dashboard/feed-editor/ScheduleSettings';
-import { Database } from '@/lib/database.types';
-import { FeedConfig } from '@/components/dashboard/feed-editor/types';
-
-type FeedRow = Database['public']['Tables']['feeds']['Row'];
-
-interface Feed extends Omit<FeedRow, 'config'> {
-    config?: FeedConfig;
-}
+import type { Feed, FeedConfig } from '@/types/feed';
 
 interface FeedEditorProps {
     feed: Feed;
@@ -29,19 +23,12 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
         interval: 10,
         transition: 'fade',
         fit: 'cover',
+        shuffle: true,
         show_clock: true,
-        show_weather: false,
         sleep_schedule: { enabled: false, start: '22:00', end: '07:00' }
     });
 
-    const { data: allSourcesData = [] } = useQuery({
-        queryKey: ['sources'],
-        queryFn: async () => {
-            const { data, error } = await supabase.from('sources').select('*');
-            if (error) throw error;
-            return data as Source[];
-        }
-    });
+    const { data: allSourcesData = [] } = useAllSources(feed.user_id);
 
     const { data: feedSourcesData = [] } = useQuery({
         queryKey: ['feed_sources', feed.id],
@@ -76,14 +63,28 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                 config: config as any
             });
 
-            await supabase.from('feed_sources').delete().eq('feed_id', feed.id);
+            // Diff-based update: only remove deselected and add newly selected
+            // This avoids the non-atomic delete-all + re-insert pattern
+            const currentIds = new Set(feedSourcesData.map(fs => fs.source_id));
+            const toRemove = [...currentIds].filter(id => !selectedSourceIds.has(id));
+            const toAdd = [...selectedSourceIds].filter(id => !currentIds.has(id));
 
-            if (selectedSourceIds.size > 0) {
-                const rows = Array.from(selectedSourceIds).map(sourceId => ({
+            if (toRemove.length > 0) {
+                const { error } = await supabase
+                    .from('feed_sources')
+                    .delete()
+                    .eq('feed_id', feed.id)
+                    .in('source_id', toRemove);
+                if (error) throw error;
+            }
+
+            if (toAdd.length > 0) {
+                const rows = toAdd.map(sourceId => ({
                     feed_id: feed.id,
                     source_id: sourceId
                 }));
-                await supabase.from('feed_sources').insert(rows);
+                const { error } = await supabase.from('feed_sources').insert(rows);
+                if (error) throw error;
             }
 
             onUpdate();

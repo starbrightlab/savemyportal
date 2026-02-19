@@ -1,55 +1,72 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Database } from '@/lib/database.types';
-
-type FeedRow = Database['public']['Tables']['feeds']['Row'];
-
-// Define locally what specific JSON config we expect
-interface FeedConfig {
-    interval?: number | string;
-    fit?: 'cover' | 'contain';
-    show_clock?: boolean;
-    show_weather?: boolean;
-    sleep_schedule?: {
-        enabled: boolean;
-        start: string;
-        end: string;
-    };
-}
-
-// Enhance the DB row with our parsed config type
-export interface Feed extends Omit<FeedRow, 'config'> {
-    config?: FeedConfig;
-}
+import type { Feed } from '@/types/feed';
 
 interface Photo {
     id: string;
     source_id: string;
     url: string;
-    credit?: string;
+}
+
+// Curated fallback scenic images from Unsplash (free to hotlink per Unsplash terms).
+// Displayed when no user is signed in, no photos are available, or on fetch error.
+const FALLBACK_PHOTOS: Photo[] = [
+    { id: 'fb-1', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&q=80' },
+    { id: 'fb-2', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80' },
+    { id: 'fb-3', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80' },
+    { id: 'fb-4', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80' },
+    { id: 'fb-5', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80' },
+    { id: 'fb-6', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80' },
+    { id: 'fb-7', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80' },
+    { id: 'fb-8', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1465056836900-8f1e940b3b67?w=1920&q=80' },
+    { id: 'fb-9', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1414609245224-afa02bfb3fda?w=1920&q=80' },
+    { id: 'fb-10', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80' },
+];
+
+/** Fisher-Yates shuffle (returns a new array). */
+function shuffleArray<T>(arr: T[]): T[] {
+    const shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 }
 
 interface SlideshowProps {
-    user?: any; // To be strictly typed in next phase
     feed?: Feed | null;
 }
 
 export default function Slideshow({ feed }: SlideshowProps) {
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(0);
     const [photos, setPhotos] = useState<Photo[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [sleeping, setSleeping] = useState(false);
+    const [clockTime, setClockTime] = useState('');
+    const [usingFallback, setUsingFallback] = useState(false);
 
-    // Default Config
+    // Config
     const config = feed?.config || {};
     const intervalTime = (typeof config.interval === 'string' ? parseInt(config.interval) : config.interval || 10) * 1000;
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
-    const showWeather = config.show_weather || false;
+    const shuffle = config.shuffle !== false; // default true
 
-    const [sleeping, setSleeping] = useState(false);
+    // Clock — update every 30 seconds
+    useEffect(() => {
+        if (!showClock) return;
 
-    // Check sleep status every minute
+        const update = () => {
+            setClockTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        };
+        update();
+        const timer = setInterval(update, 30000);
+        return () => clearInterval(timer);
+    }, [showClock]);
+
+    // Sleep schedule check — every minute
     useEffect(() => {
         const checkSleep = () => {
             if (!config.sleep_schedule?.enabled) {
@@ -61,7 +78,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
             const { start, end } = config.sleep_schedule;
 
             if (start > end) {
-                // Spans midnight
                 setSleeping(currentTime >= start || currentTime < end);
             } else {
                 setSleeping(currentTime >= start && currentTime < end);
@@ -73,22 +89,30 @@ export default function Slideshow({ feed }: SlideshowProps) {
         return () => clearInterval(timer);
     }, [config.sleep_schedule?.enabled, config.sleep_schedule?.start, config.sleep_schedule?.end]);
 
-    // Fetch photos on mount
+    // Fetch photos on mount — fall back to stock imagery if nothing is available
     useEffect(() => {
         const loadPhotos = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            let userPhotos: Photo[] = [];
+            setLoading(true);
+            setUsingFallback(false);
 
-            if (session?.user) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session?.user) {
+                    // No user — show fallback scenic imagery
+                    setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                    setUsingFallback(true);
+                    setLoading(false);
+                    return;
+                }
+
                 let query = supabase
                     .from('source_items')
                     .select('*')
                     .order('captured_at', { ascending: false })
                     .limit(100);
 
-                // If a feed is provided, reject items not in this feed's sources
                 if (feed) {
-                    // 1. Get source IDs for this feed
                     const { data: feedSources } = await supabase
                         .from('feed_sources')
                         .select('source_id')
@@ -98,109 +122,127 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         const sourceIds = feedSources.map(fs => fs.source_id);
                         query = query.in('source_id', sourceIds);
                     } else {
-                        // Feed has no sources? Return empty or handle gracefully
+                        // Feed exists but has no sources — show fallback
+                        setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                        setUsingFallback(true);
+                        setLoading(false);
+                        return;
                     }
                 }
 
-                const { data } = await query;
+                const { data, error } = await query;
+
+                if (error) throw error;
 
                 if (data && data.length > 0) {
-                    userPhotos = data.map(item => ({
-                        id: item.id,
-                        source_id: item.source_id,
-                        url: item.url,
-                        credit: 'Shared Album'
-                    }));
+                    const processedPhotos = data.map(item => {
+                        let finalUrl = item.url;
+
+                        if (item.url.includes('googleusercontent.com') && !item.url.includes('=')) {
+                            finalUrl = `${item.url}=w1920-h1080`;
+                        }
+
+                        return {
+                            id: item.id,
+                            source_id: item.source_id,
+                            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
+                        };
+                    });
+
+                    setPhotos(shuffle ? shuffleArray(processedPhotos) : processedPhotos);
+                } else {
+                    // Authenticated but no photos — show fallback
+                    setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                    setUsingFallback(true);
                 }
+            } catch (err) {
+                console.error('Failed to load photos, using fallback imagery:', err);
+                setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                setUsingFallback(true);
             }
 
-            if (userPhotos.length > 0) {
-                // Use Proxy for all images to avoid CORS/Referrer issues (especially iCloud/Google)
-                // We construct the URL to point to our edge function
-                const processedPhotos = userPhotos.map((p) => {
-                    let finalUrl = p.url;
-
-                    // Optimization for Google Photos (still useful even with proxy)
-                    if (p.url.includes('googleusercontent.com') && !p.url.includes('=')) {
-                        finalUrl = `${p.url}=w1920-h1080`;
-                    }
-
-                    return {
-                        ...p,
-                        // supabase.functions.invokeUrl is not directly exposed, so we build it manually
-                        // standard format: https://[project-ref].supabase.co/functions/v1/proxy-image?url=[encoded_url]
-                        url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
-                    };
-                });
-                setPhotos(processedPhotos);
-            }
+            setLoading(false);
         };
 
         loadPhotos();
-    }, [feed]);
+    }, [feed, shuffle]);
 
-    // Auto-advance logic
+    // Preload the next image into browser cache
     useEffect(() => {
         if (photos.length <= 1) return;
-        if (sleeping) return; // Don't advance if sleeping
+        const nextIdx = (currentIndex + 1) % photos.length;
+        const img = new Image();
+        img.src = photos[nextIdx].url;
+    }, [currentIndex, photos]);
 
-        const timer = setInterval(() => {
-            setCurrentImageIndex(prev => (prev + 1) % photos.length);
-        }, intervalTime);
+    // Auto-advance
+    const advance = useCallback(() => {
+        setCurrentIndex(prev => (prev + 1) % photos.length);
+    }, [photos.length]);
 
+    useEffect(() => {
+        if (photos.length <= 1 || sleeping) return;
+
+        const fallbackInterval = usingFallback ? 15000 : intervalTime;
+        const timer = setInterval(advance, fallbackInterval);
         return () => clearInterval(timer);
-    }, [photos.length, intervalTime, sleeping]);
+    }, [photos.length, intervalTime, sleeping, advance, usingFallback]);
+
+    // Indices to render — only current and next (2 DOM nodes instead of 100)
+    const nextIdx = photos.length > 1 ? (currentIndex + 1) % photos.length : currentIndex;
+    const visibleIndices = photos.length > 0
+        ? (currentIndex === nextIdx ? [currentIndex] : [currentIndex, nextIdx])
+        : [];
+
+    if (loading) {
+        return (
+            <div className="absolute inset-0 w-full h-full bg-deep-space flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-electric-blue" />
+            </div>
+        );
+    }
 
     return (
         <div className="absolute inset-0 w-full h-full bg-deep-space overflow-hidden z-0">
-            {photos.map((photo, index) => (
-                <div
-                    key={photo.id || index}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'}`}
-                >
-                    {/* Blurred Background Layer for Fill Effect */}
+            {visibleIndices.map((index) => {
+                const photo = photos[index];
+                return (
                     <div
-                        className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
-                        style={{ backgroundImage: `url(${photo.url})` }}
-                    />
+                        key={photo.id}
+                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+                    >
+                        {/* Blurred Background Layer */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
+                            style={{ backgroundImage: `url(${photo.url})` }}
+                        />
 
-                    {/* Main Image */}
-                    <img
-                        src={photo.url}
-                        alt="Frame Content"
-                        className="absolute inset-0 w-full h-full z-10 transition-all duration-1000"
-                        style={{ objectFit: objectFit }}
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            console.log("Image failed to load:", photo.id);
+                        {/* Main Image */}
+                        <img
+                            src={photo.url}
+                            alt="Frame Content"
+                            className="absolute inset-0 w-full h-full z-10 transition-all duration-1000"
+                            style={{ objectFit }}
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                if (target.dataset.retried) return;
+                                target.dataset.retried = "true";
+                                advance();
+                            }}
+                        />
+                    </div>
+                );
+            })}
 
-                            // Prevent infinite loops on same image
-                            if (target.dataset.retried) return;
-                            target.dataset.retried = "true";
-
-                            // Graceful degradation: Simply skip to the next slide
-                            // This prevents the "white screen of death" or boot loops
-                            const nextIndex = (currentImageIndex + 1) % photos.length;
-                            setCurrentImageIndex(nextIndex);
-                        }}
-                    />
-                </div>
-            ))}
-
-            {/* Widgets Layer */}
-            <div className="absolute top-8 right-8 z-40 text-right pointer-events-none">
-                {showClock && (
+            {/* Clock Widget */}
+            {showClock && !usingFallback && (
+                <div className="absolute top-8 right-8 z-40 text-right pointer-events-none">
                     <div className="text-6xl font-bold text-white drop-shadow-lg font-display">
-                        {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {clockTime}
                     </div>
-                )}
-                {showWeather && (
-                    <div className="text-xl text-white/80 drop-shadow-md mt-1">
-                        72°F Cloudy
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

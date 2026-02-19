@@ -14,6 +14,7 @@ interface SourceCardProps {
 
 export default function SourceCard({ source, onSync, onDelete }: SourceCardProps) {
     const [loading, setLoading] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const handleSync = async () => {
         setLoading(true);
@@ -21,9 +22,14 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
         setLoading(false);
     };
 
-    const handleDelete = async () => {
-        if (confirm("Are you sure?")) {
-            await onDelete(source.id);
+    const handleDelete = () => {
+        if (confirmingDelete) {
+            onDelete(source.id);
+            setConfirmingDelete(false);
+        } else {
+            setConfirmingDelete(true);
+            // Auto-reset after 3 seconds if user doesn't confirm
+            setTimeout(() => setConfirmingDelete(false), 3000);
         }
     };
 
@@ -69,9 +75,12 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                 </button>
                 <button
                     onClick={handleDelete}
-                    className="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-semibold transition-colors"
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${confirmingDelete
+                        ? 'bg-red-500/30 text-red-200 border border-red-500/50'
+                        : 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
+                    }`}
                 >
-                    Delete
+                    {confirmingDelete ? 'Confirm?' : 'Delete'}
                 </button>
             </div>
         </div >

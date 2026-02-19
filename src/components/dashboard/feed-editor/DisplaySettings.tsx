@@ -56,8 +56,16 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                     </select>
                 </div>
 
-                {/* Widgets */}
+                {/* Options */}
                 <div className="space-y-2">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config.shuffle !== false}
+                            onChange={(e) => handleChange('shuffle', e.target.checked)}
+                        />
+                        <span className="text-gray-300">Shuffle Order</span>
+                    </label>
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input
                             type="checkbox"
@@ -65,14 +73,6 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                             onChange={(e) => handleChange('show_clock', e.target.checked)}
                         />
                         <span className="text-gray-300">Show Clock</span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={config.show_weather}
-                            onChange={(e) => handleChange('show_weather', e.target.checked)}
-                        />
-                        <span className="text-gray-300">Show Weather</span>
                     </label>
                 </div>
             </div>

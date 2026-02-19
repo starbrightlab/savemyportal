@@ -26,6 +26,7 @@ dist-ssr
 # Sensitive files
 .env
 .env*.local
+token.json
 
 # Build artifacts
 .next

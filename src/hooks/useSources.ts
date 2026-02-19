@@ -6,21 +6,54 @@ export type Source = Database['public']['Tables']['sources']['Row'];
 export type SourceInsert = Database['public']['Tables']['sources']['Insert'];
 export type SourceUpdate = Database['public']['Tables']['sources']['Update'];
 
+/**
+ * Fetch sources linked to a specific feed via the feed_sources junction table.
+ */
 export const useSources = (feedId: string | null) => {
     return useQuery({
-        queryKey: ['sources', feedId],
+        queryKey: ['sources', 'feed', feedId],
         queryFn: async () => {
             if (!feedId) return [];
+
+            const { data: links, error: linkError } = await supabase
+                .from('feed_sources')
+                .select('source_id')
+                .eq('feed_id', feedId);
+
+            if (linkError) throw linkError;
+            if (!links || links.length === 0) return [];
+
+            const sourceIds = links.map(l => l.source_id);
+
             const { data, error } = await supabase
                 .from('sources')
                 .select('*')
-                .eq('feed_id', feedId)
+                .in('id', sourceIds)
                 .order('created_at', { ascending: true });
 
             if (error) throw error;
             return data;
         },
         enabled: !!feedId,
+    });
+};
+
+/**
+ * Fetch all sources for the current user (not scoped to a feed).
+ */
+export const useAllSources = (userId: string | undefined) => {
+    return useQuery({
+        queryKey: ['sources'],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('sources')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data;
+        },
+        enabled: !!userId,
     });
 };
 
@@ -36,8 +69,8 @@ export const useCreateSource = () => {
             if (error) throw error;
             return data;
         },
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['sources', data.feed_id] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
         },
     });
 };
@@ -55,8 +88,8 @@ export const useUpdateSource = () => {
             if (error) throw error;
             return data;
         },
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['sources', data.feed_id] });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
         },
     });
 };
@@ -65,20 +98,14 @@ export const useDeleteSource = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (sourceId: string) => {
-            // First fetch the source to get the feed_id for invalidation
-            const { data: source } = await supabase.from('sources').select('feed_id').eq('id', sourceId).single();
-
             const { error } = await supabase
                 .from('sources')
                 .delete()
                 .eq('id', sourceId);
             if (error) throw error;
-            return source?.feed_id;
         },
-        onSuccess: (feedId) => {
-            if (feedId) {
-                queryClient.invalidateQueries({ queryKey: ['sources', feedId] });
-            }
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sources'] });
         },
     });
 };
