@@ -50,11 +50,11 @@ const StepAuth = ({ onNext }: StepAuthProps) => {
             <div className="space-y-4">
                 <h2 className="text-3xl font-bold text-white">Welcome</h2>
                 <p className="text-gray-300 text-lg max-w-md mx-auto leading-relaxed">
-                    Turn your unused portal device into a beautiful, always-on digital picture frame.
+                    Transform your device into a beautiful, always-on digital picture frame.
                 </p>
             </div>
 
-            <div className="w-full max-w-sm mx-auto mb-6">
+            <div className="max-w-sm mx-auto mb-6">
                 <label className="flex items-start gap-3 text-left p-3 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group">
                     <div className="relative flex items-center mt-1">
                         <input

@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
-const STEP_LABELS = ['Account', 'Create Feed', 'Add Photos', 'Support'];
+const STEP_LABELS = ['Account', 'Create Feed', 'Add Photos', 'Features'];
 
 const Onboarding = () => {
     const [step, setStep] = useState(0);
@@ -94,20 +94,8 @@ const Onboarding = () => {
             <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-soft-gold/5 rounded-full blur-[100px]" />
 
             <div className="w-full max-w-2xl relative z-10">
-                {/* Header */}
-                <div className="text-center mb-10">
-                    <div className="flex justify-center mb-6">
-                        <img
-                            src="/savemyportal-logo-white.svg"
-                            alt="SaveMyPortal Logo"
-                            className="w-24 h-24 drop-shadow-[0_0_20px_rgba(59,130,246,0.2)]"
-                        />
-                    </div>
-                    <p className="text-gray-400 text-sm tracking-wide uppercase">Setup Wizard</p>
-                </div>
-
                 {/* Progress Bar */}
-                <div className="flex items-center justify-between mb-8 px-8 relative">
+                <div className="flex items-center justify-between mb-12 px-8 relative">
                     {/* Line Background */}
                     <div className="absolute top-1/2 left-8 right-8 h-0.5 bg-gray-800 -z-10" />
 
