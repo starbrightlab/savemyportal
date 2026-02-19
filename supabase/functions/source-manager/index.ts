@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { scrapeGooglePhotos, scrapeICloud } from './scrapers.ts'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -143,7 +144,7 @@ serve(async (req) => {
                     status: 'error',
                     error_message: errorMsg,
                 }).eq('id', sourceId)
-            } catch { /* best effort */ }
+            } catch (_e) { /* best effort */ }
         }
 
         return new Response(JSON.stringify({ error: errorMsg }), {
@@ -153,8 +154,5 @@ serve(async (req) => {
     }
 })
 
-// --- Scraper Implementations ---
-
-
-import { scrapeGooglePhotos, scrapeICloud } from './scrapers.ts'
+// --- Scraper Implementations imported at top of file ---
 

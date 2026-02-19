@@ -16,7 +16,7 @@ function isAllowedUrl(targetUrl: string): boolean {
     let parsed: URL
     try {
         parsed = new URL(targetUrl)
-    } catch {
+    } catch (_e) {
         return false
     }
 

@@ -99,7 +99,7 @@ export async function scrapeGooglePhotos(url: string) {
                     break;
                 }
             }
-        } catch {
+        } catch (_e) {
             // Ignore parse errors
         }
     }
@@ -255,7 +255,7 @@ export async function scrapeICloud(url: string) {
         let videoDeriv: any = null;
         try {
             isVideo = photo.mediaAssetType === 'video';
-        } catch { /* default to image */ }
+        } catch (_e) { /* default to image */ }
 
         // Find the best (largest) derivative and optionally the video derivative
         let best: any = null;
@@ -269,7 +269,7 @@ export async function scrapeICloud(url: string) {
                     if (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4')) {
                         videoDeriv = d;
                     }
-                } catch { /* ignore */ }
+                } catch (_e) { /* ignore */ }
             }
             if (!best || parseInt(d.width || '0') > parseInt(best.width || '0')) {
                 best = d;
