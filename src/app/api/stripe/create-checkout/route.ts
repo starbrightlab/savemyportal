@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { Database } from '@/lib/database.types';
 
 function getStripe() {
@@ -37,10 +38,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const { allowed } = checkRateLimit(`checkout:${user.id}`, { maxRequests: 3 });
+        if (!allowed) {
+            return NextResponse.json({ error: 'Too many requests. Please try again in a minute.' }, { status: 429 });
+        }
+
         // 2. Check that user is currently on free tier
         const serviceClient = createServiceClient<Database>(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPERBASE_SERVICE_ROLE_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         const { data: profile } = await serviceClient
@@ -91,8 +97,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ url: session.url });
     } catch (error) {
-        const errorMsg = (error as Error).message || String(error);
-        console.error('Create Checkout Error:', errorMsg);
-        return NextResponse.json({ error: errorMsg }, { status: 500 });
+        console.error('Create Checkout Error:', (error as Error).message || error);
+        return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
     }
 }

@@ -14,7 +14,7 @@ export const TIER_LIMITS = {
 } as const;
 
 export const FREE_DEFAULT_CONFIG = {
-    interval: 10,
+    interval: 30,
     transition: 'crossfade',
     fit: 'cover',
     shuffle: true,

@@ -242,7 +242,8 @@ export default function Landing() {
                 </div>
 
                 <div className="w-full md:w-1/3 text-center mb-4 md:mb-0">
-                    <span>Made with <span className="text-red-500">♥</span> by </span>
+                    <span className="hidden md:inline">Made with <span className="text-red-500">♥</span> by </span>
+                    <span className="md:hidden">by </span>
                     <a href="https://starbrightlab.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
                         Starbright Lab
                     </a>

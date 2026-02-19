@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { scrapeGooglePhotos, scrapeICloud } from '@/lib/scrapers';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -22,6 +23,11 @@ export async function POST(request: NextRequest) {
 
         if (authError || !user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { allowed } = checkRateLimit(`scrape:${user.id}`, { maxRequests: 5 });
+        if (!allowed) {
+            return NextResponse.json({ error: 'Too many requests. Please try again in a minute.' }, { status: 429 });
         }
 
         const body = await request.json();
@@ -109,7 +115,7 @@ export async function POST(request: NextRequest) {
         // 5. Update source status in the background (best-effort, don't block response)
         const serviceClient = createServiceClient<Database>(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPERBASE_SERVICE_ROLE_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         // Update all successfully scraped sources
@@ -120,7 +126,9 @@ export async function POST(request: NextRequest) {
                     last_scraped_at: new Date().toISOString(),
                     status: 'active',
                     error_message: null,
-                }).eq('id', source_id).then(() => {});
+                }).eq('id', source_id).then(() => {}).catch(err =>
+                    console.error(`Failed to update source status for ${source_id}:`, err)
+                );
             }
         }
 
@@ -142,8 +150,7 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        const errorMsg = (error as Error).message || String(error);
-        console.error('Scrape URLs Error:', errorMsg);
-        return NextResponse.json({ error: errorMsg }, { status: 500 });
+        console.error('Scrape URLs Error:', (error as Error).message || error);
+        return NextResponse.json({ error: 'Failed to load photos. Please try again.' }, { status: 500 });
     }
 }

@@ -111,7 +111,8 @@ export default function Dashboard() {
             setMessage({ type: 'success', text: `Success! Found ${data.count || 0} photos.` });
         },
         onError: (error) => {
-            setMessage({ type: 'error', text: `Error: ${error.message}` });
+            console.error('Add source error:', error);
+            setMessage({ type: 'error', text: 'Failed to add source. Please check the URL and try again.' });
         }
     });
 
@@ -132,15 +133,26 @@ export default function Dashboard() {
             setMessage({ type: 'success', text: `Synced! Found ${data.count || 0} photos.` });
         },
         onError: (error) => {
-            setMessage({ type: 'error', text: `Sync failed: ${error.message}` });
+            console.error('Sync source error:', error);
+            setMessage({ type: 'error', text: 'Sync failed. The source may be temporarily unavailable.' });
         }
     });
 
-    const identifySourceType = (url: string) => {
-        if (url.includes('photos.app.goo.gl') || url.includes('photos.google.com')) return 'google_photos';
-        if (url.includes('icloud.com/sharedalbum')) return 'icloud';
-        if (url.includes('dropbox.com')) return 'dropbox';
-        return null;
+    const identifySourceType = (rawUrl: string): 'google_photos' | 'icloud' | null => {
+        try {
+            const parsed = new URL(rawUrl);
+            const host = parsed.hostname;
+            if (host === 'photos.app.goo.gl' || host === 'photos.google.com' ||
+                (host.endsWith('.google.com') && parsed.pathname.startsWith('/photos'))) {
+                return 'google_photos';
+            }
+            if (host.endsWith('icloud.com') && parsed.pathname.includes('/sharedalbum')) {
+                return 'icloud';
+            }
+            return null;
+        } catch {
+            return null;
+        }
     };
 
     const handleAddSource = () => {
@@ -167,7 +179,8 @@ export default function Dashboard() {
             setNewFeedName('');
             setShowNewFeedInput(false);
         } catch (error: any) {
-            setMessage({ type: 'error', text: 'Error creating feed: ' + error.message });
+            console.error('Create feed error:', error);
+            setMessage({ type: 'error', text: 'Failed to create feed. Please try again.' });
         }
     };
 
