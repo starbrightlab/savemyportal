@@ -120,7 +120,7 @@ export default function Landing() {
 
             {/* Overlay Layer: Visible when NOT in Frame Mode */}
             <div
-                className={`absolute inset-0 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
+                className={`absolute inset-0 bg-black/20 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
@@ -142,9 +142,6 @@ export default function Landing() {
                             >
                                 Get Started
                             </Link>
-                            <p className="text-xl text-gray-300 font-light">
-                                Repurpose your portal. Give it a second life.
-                            </p>
                         </div>
                     ) : (
                         /* LOGGED IN STATE */
