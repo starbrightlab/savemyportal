@@ -120,7 +120,7 @@ export default function Landing() {
 
             {/* Overlay Layer: Visible when NOT in Frame Mode */}
             <div
-                className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
+                className={`absolute inset-0 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
@@ -138,6 +138,7 @@ export default function Landing() {
                             <Link
                                 href="/onboarding"
                                 className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl"
+                                style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
                             >
                                 Get Started
                             </Link>
@@ -153,6 +154,7 @@ export default function Landing() {
                                 <button
                                     onClick={startFrame}
                                     className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
+                                    style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
                                 >
                                     Start Frame
                                 </button>
