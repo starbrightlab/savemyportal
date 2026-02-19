@@ -31,6 +31,7 @@ export default function Dashboard() {
     const [message, setMessage] = useState<Message | null>(null);
     const [showNewFeedInput, setShowNewFeedInput] = useState(false);
     const [newFeedName, setNewFeedName] = useState('');
+    const [showDangerZone, setShowDangerZone] = useState(false);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -376,24 +377,41 @@ export default function Dashboard() {
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-red-500/10">
-                        <div>
-                            <p className="text-sm font-medium text-red-400">Delete account</p>
-                            <p className="text-xs text-gray-600">Permanently removes all data. This cannot be undone.</p>
-                        </div>
+                    <div className="pt-2 border-t border-white/5">
                         <button
-                            onClick={handleDeleteAccount}
-                            disabled={deleting}
-                            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
-                                deleting
-                                    ? 'bg-red-500/10 text-red-300 opacity-50 cursor-not-allowed'
-                                    : confirmingDelete
-                                        ? 'bg-red-500/20 text-red-200 border border-red-500/40 animate-pulse'
-                                        : 'text-red-400 border border-red-500/15 hover:border-red-500/30 hover:bg-red-500/5'
-                            }`}
+                            onClick={() => setShowDangerZone(!showDangerZone)}
+                            className="flex items-center justify-between w-full py-1 group"
                         >
-                            {deleting ? 'Deleting...' : confirmingDelete ? 'Tap Again' : 'Delete'}
+                            <p className="text-sm text-gray-600 group-hover:text-gray-400 transition-colors">Danger zone</p>
+                            <svg
+                                className={`w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-all ${showDangerZone ? 'rotate-180' : ''}`}
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
                         </button>
+
+                        {showDangerZone && (
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-red-500/10">
+                                <div>
+                                    <p className="text-sm font-medium text-red-400">Delete account</p>
+                                    <p className="text-xs text-gray-600">Permanently removes all data. This cannot be undone.</p>
+                                </div>
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleting}
+                                    className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                                        deleting
+                                            ? 'bg-red-500/10 text-red-300 opacity-50 cursor-not-allowed'
+                                            : confirmingDelete
+                                                ? 'bg-red-500/20 text-red-200 border border-red-500/40 animate-pulse'
+                                                : 'text-red-400 border border-red-500/15 hover:border-red-500/30 hover:bg-red-500/5'
+                                    }`}
+                                >
+                                    {deleting ? 'Deleting...' : confirmingDelete ? 'Tap Again' : 'Delete'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </section>
             </div>
