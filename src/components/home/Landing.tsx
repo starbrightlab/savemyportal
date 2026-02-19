@@ -113,7 +113,7 @@ export default function Landing() {
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
-                    <div className="text-center space-y-4 mb-8">
+                    <div className="text-center space-y-4">
                         <div className="flex justify-center">
                             <img
                                 src="/savemyportal-logo-white.svg"
@@ -147,7 +147,7 @@ export default function Landing() {
                         /* LOGGED IN STATE */
                         <div className="flex flex-col items-center gap-4 w-full">
                             {/* CTA Button: Centered & Large */}
-                            <div className="flex-1 flex items-center justify-center w-full py-12">
+                            <div className="flex-1 flex items-center justify-center w-full py-6">
                                 <button
                                     onClick={startFrame}
                                     className="px-20 py-5 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
