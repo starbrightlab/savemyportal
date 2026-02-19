@@ -121,11 +121,11 @@ export default function Landing() {
                                 className="w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-pulse-slow"
                             />
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-bold font-outfit tracking-tight">
+                        <h1 className="text-4xl md:text-5xl font-light font-outfit tracking-tight">
                             SaveMyPortal
                         </h1>
                         <p className="text-white/50 text-sm md:text-base font-light">
-                            Turn your Meta Portal into a digital photo frame
+                            Transform your device into a beautiful digital photo frame.
                         </p>
                     </div>
 
