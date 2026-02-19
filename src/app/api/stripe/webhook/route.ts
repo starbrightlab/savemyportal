@@ -54,15 +54,17 @@ export async function POST(request: NextRequest) {
             process.env.SUPERBASE_SERVICE_ROLE_KEY!
         );
 
+        // Upsert instead of update — creates the row if the signup trigger
+        // didn't fire (e.g. user signed up before the migration was applied)
         const { error: updateError } = await serviceClient
             .from('user_profiles')
-            .update({
+            .upsert({
+                user_id: userId,
                 tier: 'pro',
                 stripe_payment_id: session.id,
                 upgraded_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', userId);
+            }, { onConflict: 'user_id' });
 
         if (updateError) {
             console.error('Webhook: Failed to update user profile:', updateError);
