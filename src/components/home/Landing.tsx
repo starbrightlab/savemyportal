@@ -100,6 +100,7 @@ export default function Landing() {
             onClick={handleInteraction}
         >
             <WakeLock ref={wakeLockRef} />
+            <h1 className="sr-only">SaveMyPortal – Turn your Meta Portal into a digital photo frame</h1>
 
             {/* Background Layer: The Slideshow */}
             <div className="absolute inset-0 z-0">
