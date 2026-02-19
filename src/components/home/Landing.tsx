@@ -134,7 +134,7 @@ export default function Landing() {
                         <div className="flex flex-col items-center gap-8">
                             <Link
                                 href="/onboarding"
-                                className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl mb-8"
+                                className="px-20 py-5 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl mb-8"
                                 style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
                             >
                                 Get Started
@@ -145,12 +145,12 @@ export default function Landing() {
                         </div>
                     ) : (
                         /* LOGGED IN STATE */
-                        <div className="flex flex-col items-center gap-12 w-full">
+                        <div className="flex flex-col items-center gap-4 w-full">
                             {/* CTA Button: Centered & Large */}
                             <div className="flex-1 flex items-center justify-center w-full py-12">
                                 <button
                                     onClick={startFrame}
-                                    className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
+                                    className="px-20 py-5 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
                                     style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
                                 >
                                     Start Frame
