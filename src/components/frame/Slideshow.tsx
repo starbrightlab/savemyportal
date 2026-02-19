@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Feed } from '@/types/feed';
+import type { Feed, TransitionType } from '@/types/feed';
 
 interface Photo {
     id: string;
@@ -72,6 +72,17 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
     const shuffle = config.shuffle !== false; // default true
+
+    // Normalise transition value — map legacy 'fade' to 'crossfade'
+    const transition: TransitionType = (() => {
+        const raw = config.transition || 'crossfade';
+        if (raw === 'fade') return 'crossfade';
+        return raw as TransitionType;
+    })();
+
+    // Transition state — track which photo is "entering" vs "on stage"
+    const [isTransitioning, setIsTransitioning] = useState(false);
+    const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Clock — update every 30 seconds, 12-hour format
     useEffect(() => {
@@ -189,10 +200,34 @@ export default function Slideshow({ feed }: SlideshowProps) {
         img.src = photos[nextIdx].url;
     }, [currentIndex, photos]);
 
-    // Auto-advance
+    // Transition duration in ms
+    const TRANSITION_MS = transition === 'none' ? 0 : 1200;
+
+    // Auto-advance with transition state
     const advance = useCallback(() => {
-        setCurrentIndex(prev => (prev + 1) % photos.length);
-    }, [photos.length]);
+        if (photos.length <= 1) return;
+
+        if (transition === 'none') {
+            setCurrentIndex(prev => (prev + 1) % photos.length);
+            return;
+        }
+
+        // Start the transition animation
+        setIsTransitioning(true);
+
+        // After animation completes, commit the index change
+        transitionTimeoutRef.current = setTimeout(() => {
+            setCurrentIndex(prev => (prev + 1) % photos.length);
+            setIsTransitioning(false);
+        }, TRANSITION_MS);
+    }, [photos.length, transition, TRANSITION_MS]);
+
+    // Cleanup transition timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (photos.length <= 1 || sleeping) return;
@@ -202,16 +237,99 @@ export default function Slideshow({ feed }: SlideshowProps) {
         return () => clearInterval(timer);
     }, [photos.length, intervalTime, sleeping, advance, usingFallback]);
 
-    // Indices to render — only current and next (2 DOM nodes instead of 100)
+    // Current and next indices / photos
     const nextIdx = photos.length > 1 ? (currentIndex + 1) % photos.length : currentIndex;
-    const visibleIndices = photos.length > 0
-        ? (currentIndex === nextIdx ? [currentIndex] : [currentIndex, nextIdx])
-        : [];
-
-    // Current photo for credit overlay
     const currentPhoto = photos[currentIndex] || null;
+    const nextPhoto = photos[nextIdx] || null;
     const showCredit = usingFallback && currentPhoto?.credit;
     const renderClock = (showClock && !usingFallback) || usingFallback;
+
+    /**
+     * Compute inline styles for the two layers based on transition type.
+     * "current" = the photo on stage, "next" = the photo entering.
+     * When isTransitioning is true, we animate from rest → active states.
+     */
+    const getLayerStyles = (layer: 'current' | 'next'): React.CSSProperties => {
+        const base: React.CSSProperties = {
+            position: 'absolute',
+            inset: 0,
+            willChange: 'transform, opacity',
+        };
+
+        const dur = `${TRANSITION_MS}ms`;
+        const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+        switch (transition) {
+            case 'crossfade':
+                return {
+                    ...base,
+                    transition: `opacity ${dur} ${ease}`,
+                    opacity: layer === 'current'
+                        ? (isTransitioning ? 0 : 1)
+                        : (isTransitioning ? 1 : 0),
+                    zIndex: layer === 'next' ? 2 : 1,
+                };
+
+            case 'slide':
+                if (layer === 'current') {
+                    return {
+                        ...base,
+                        transition: `transform ${dur} ${ease}, opacity ${dur} ${ease}`,
+                        transform: isTransitioning ? 'translateX(-100%)' : 'translateX(0)',
+                        opacity: isTransitioning ? 0 : 1,
+                        zIndex: 1,
+                    };
+                }
+                return {
+                    ...base,
+                    transition: `transform ${dur} ${ease}, opacity ${dur} ${ease}`,
+                    transform: isTransitioning ? 'translateX(0)' : 'translateX(100%)',
+                    opacity: isTransitioning ? 1 : 0,
+                    zIndex: 2,
+                };
+
+            case 'zoom-fade':
+                if (layer === 'current') {
+                    return {
+                        ...base,
+                        transition: `opacity ${dur} ${ease}`,
+                        opacity: isTransitioning ? 0 : 1,
+                        zIndex: 1,
+                    };
+                }
+                return {
+                    ...base,
+                    transition: `transform ${dur} ${ease}, opacity ${dur} ${ease}`,
+                    transform: isTransitioning ? 'scale(1)' : 'scale(1.15)',
+                    opacity: isTransitioning ? 1 : 0,
+                    zIndex: 2,
+                };
+
+            case 'push':
+                if (layer === 'current') {
+                    return {
+                        ...base,
+                        transition: `transform ${dur} ${ease}`,
+                        transform: isTransitioning ? 'translateX(-100%)' : 'translateX(0)',
+                        zIndex: 1,
+                    };
+                }
+                return {
+                    ...base,
+                    transition: `transform ${dur} ${ease}`,
+                    transform: isTransitioning ? 'translateX(0)' : 'translateX(100%)',
+                    zIndex: 2,
+                };
+
+            case 'none':
+            default:
+                return {
+                    ...base,
+                    opacity: layer === 'current' ? 1 : 0,
+                    zIndex: layer === 'current' ? 1 : 0,
+                };
+        }
+    };
 
     if (loading) {
         return (
@@ -221,38 +339,46 @@ export default function Slideshow({ feed }: SlideshowProps) {
         );
     }
 
+    /** Render a single photo layer (blurred bg + main image). */
+    const renderPhotoLayer = (photo: Photo) => (
+        <>
+            {/* Blurred Background Layer */}
+            <div
+                className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
+                style={{ backgroundImage: `url(${photo.url})` }}
+            />
+            {/* Main Image */}
+            <img
+                src={photo.url}
+                alt="Frame Content"
+                className="absolute inset-0 w-full h-full z-10"
+                style={{ objectFit }}
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    if (target.dataset.retried) return;
+                    target.dataset.retried = "true";
+                    advance();
+                }}
+            />
+        </>
+    );
+
     return (
         <div className="absolute inset-0 w-full h-full bg-deep-space overflow-hidden z-0">
-            {visibleIndices.map((index) => {
-                const photo = photos[index];
-                return (
-                    <div
-                        key={photo.id}
-                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
-                    >
-                        {/* Blurred Background Layer */}
-                        <div
-                            className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
-                            style={{ backgroundImage: `url(${photo.url})` }}
-                        />
+            {/* Current photo layer */}
+            {currentPhoto && (
+                <div style={getLayerStyles('current')} key={`current-${currentPhoto.id}`}>
+                    {renderPhotoLayer(currentPhoto)}
+                </div>
+            )}
 
-                        {/* Main Image */}
-                        <img
-                            src={photo.url}
-                            alt="Frame Content"
-                            className="absolute inset-0 w-full h-full z-10 transition-all duration-1000"
-                            style={{ objectFit }}
-                            referrerPolicy="no-referrer"
-                            onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (target.dataset.retried) return;
-                                target.dataset.retried = "true";
-                                advance();
-                            }}
-                        />
-                    </div>
-                );
-            })}
+            {/* Next photo layer (only rendered when different from current) */}
+            {nextPhoto && nextPhoto.id !== currentPhoto?.id && (
+                <div style={getLayerStyles('next')} key={`next-${nextPhoto.id}`}>
+                    {renderPhotoLayer(nextPhoto)}
+                </div>
+            )}
 
             {/* Clock Widget */}
             {renderClock && (
@@ -273,7 +399,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
             {/* Photo Credit — bottom-right, subtle */}
             {showCredit && currentPhoto.credit && (
-                <div className="absolute bottom-6 left-6 z-40 pointer-events-none">
+                <div className="absolute top-6 left-6 z-40 pointer-events-none">
                     <div
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                         style={{ background: 'rgba(0,0,0,0.3)', WebkitBackdropFilter: 'blur(12px)', backdropFilter: 'blur(12px)' }}
