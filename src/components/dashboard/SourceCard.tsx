@@ -48,34 +48,34 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
     const label = source.name || SOURCE_LABELS[source.type] || 'Album';
 
     return (
-        <div className="rounded-xl border border-white/8 bg-white/[0.03] p-5 hover:border-white/15 transition-all group">
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all">
             {/* Top row */}
             <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status.dot}`} />
+                    <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${status.dot}`} />
                     <div className="min-w-0">
-                        <h3 className="font-semibold text-white text-sm leading-tight truncate">{label}</h3>
+                        <h3 className="font-semibold text-white text-lg leading-tight truncate">{label}</h3>
                         <a
-                            className="text-xs text-gray-500 hover:text-electric-blue transition-colors"
+                            className="text-base text-gray-300 active:text-electric-blue transition-colors py-1.5 px-1 -mx-1 inline-block"
                             href={source.url}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
-                            View album
+                            View album &rarr;
                         </a>
                     </div>
                 </div>
-                <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded ${
-                    source.status === 'active' ? 'text-green-400/80 bg-green-500/10' :
-                    source.status === 'error' ? 'text-red-400/80 bg-red-500/10' :
-                    'text-yellow-400/80 bg-yellow-500/10'
+                <span className={`text-sm font-semibold uppercase tracking-wider px-3 py-1.5 rounded-lg ${
+                    source.status === 'active' ? 'text-green-300 bg-green-500/10' :
+                    source.status === 'error' ? 'text-red-300 bg-red-500/10' :
+                    'text-yellow-300 bg-yellow-500/10'
                 }`}>
                     {status.label}
                 </span>
             </div>
 
             {/* Meta */}
-            <div className="text-xs text-gray-600 mb-3">
+            <div className="text-base text-gray-300 mb-3">
                 {source.last_scraped_at
                     ? `Synced ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
                     : 'Never synced'
@@ -83,28 +83,28 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             </div>
 
             {source.error_message && (
-                <p className="text-xs text-red-400/80 bg-red-500/5 border border-red-500/10 rounded px-2.5 py-1.5 mb-3 truncate">
+                <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/15 rounded-lg px-3 py-2 mb-3 truncate">
                     {source.error_message}
                 </p>
             )}
 
             {/* Actions */}
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
                 <button
                     onClick={handleSync}
                     disabled={loading}
-                    className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 border border-white/8 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 hover:text-white"
+                    className="flex-1 py-3.5 rounded-lg text-base font-semibold transition-all disabled:opacity-50 border border-white/10 bg-white/[0.05] text-gray-200 active:bg-white/10"
                 >
                     {loading ? 'Syncing...' : 'Sync'}
                 </button>
                 <button
                     onClick={handleDelete}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${confirmingDelete
-                        ? 'bg-red-500/20 text-red-200 border border-red-500/40'
-                        : 'text-gray-500 border border-white/8 hover:text-red-400 hover:border-red-500/20 hover:bg-red-500/5'
+                    className={`flex-1 py-3.5 rounded-lg text-base font-semibold transition-all ${confirmingDelete
+                        ? 'bg-red-500/20 text-red-200 border border-red-500/40 animate-pulse'
+                        : 'text-gray-200 border border-white/10 bg-white/[0.05] active:text-red-300 active:bg-red-500/10'
                     }`}
                 >
-                    {confirmingDelete ? 'Confirm?' : 'Remove'}
+                    {confirmingDelete ? 'Tap to Confirm' : 'Remove'}
                 </button>
             </div>
         </div>

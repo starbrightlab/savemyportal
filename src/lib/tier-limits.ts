@@ -19,6 +19,8 @@ export const FREE_DEFAULT_CONFIG = {
     fit: 'cover',
     shuffle: true,
     show_clock: true,
+    clock_position: 'top-right',
+    clock_size: 'medium',
 } as const;
 
 export type TierName = keyof typeof TIER_LIMITS;

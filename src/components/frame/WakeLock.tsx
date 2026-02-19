@@ -9,14 +9,17 @@ export interface WakeLockHandle {
 
 const WakeLock = forwardRef<WakeLockHandle, unknown>((props, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const activeRef = useRef(false); // true while frame mode is active
 
     useImperativeHandle(ref, () => ({
         play: () => {
+            activeRef.current = true;
             if (videoRef.current) {
                 videoRef.current.play().catch(e => console.error("WakeLock play failed:", e));
             }
         },
         pause: () => {
+            activeRef.current = false;
             if (videoRef.current) {
                 videoRef.current.pause();
             }
@@ -28,7 +31,16 @@ const WakeLock = forwardRef<WakeLockHandle, unknown>((props, ref) => {
         if (!video) return;
 
         const onPause = () => {
-            // Intentional no-op. Parent calls .play() when entering Frame Mode.
+            // If we're still supposed to be playing (frame mode active), the pause was
+            // unexpected — e.g. Chrome power management or media pipeline suspension.
+            // Restart after a short delay to avoid fighting with intentional pause().
+            if (activeRef.current) {
+                setTimeout(() => {
+                    if (activeRef.current && video.paused && !video.ended) {
+                        video.play().catch(e => console.error("[WakeLock] Auto-restart failed:", e));
+                    }
+                }, 1000);
+            }
         };
 
         const onEnded = () => {

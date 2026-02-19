@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Feed, TransitionType, VideoBehavior } from '@/types/feed';
+import type { Feed, TransitionType, VideoBehavior, ClockPosition, ClockSize } from '@/types/feed';
 
 const DEBUG = process.env.NODE_ENV === 'development';
 
@@ -75,6 +75,8 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const intervalTime = (typeof config.interval === 'string' ? parseInt(config.interval) : config.interval || 10) * 1000;
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
+    const clockPosition: ClockPosition = (config.clock_position as ClockPosition) || 'top-right';
+    const clockSize: ClockSize = (config.clock_size as ClockSize) || 'medium';
     const shuffle = config.shuffle !== false; // default true
     const videoBehavior: VideoBehavior = (config.video_behavior as VideoBehavior) || 'full';
     const videoSound = config.video_sound || false;
@@ -109,6 +111,10 @@ export default function Slideshow({ feed }: SlideshowProps) {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
+                    // Re-acquire if the sentinel is released unexpectedly (e.g. power management)
+                    wakeLock.addEventListener('release', () => {
+                        requestWakeLock();
+                    });
                 }
             } catch {
                 // Wake Lock request failed — device may not support it, or page isn't visible
@@ -599,11 +605,18 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
             {/* Clock Widget */}
             {renderClock && (
-                <div className="absolute top-8 right-8 z-40 text-right pointer-events-none">
+                <div
+                    className="absolute z-40 pointer-events-none"
+                    style={{
+                        ...(clockPosition.includes('top') ? { top: '2rem' } : { bottom: '2rem' }),
+                        ...(clockPosition.includes('right') ? { right: '2rem' } : { left: '2rem' }),
+                        textAlign: clockPosition.includes('right') ? 'right' : 'left',
+                    }}
+                >
                     <div
                         className="font-clock text-white drop-shadow-lg"
                         style={{
-                            fontSize: 'clamp(3rem, 8vw, 6rem)',
+                            fontSize: clockSize === 'small' ? '48px' : clockSize === 'large' ? '96px' : '72px',
                             fontWeight: 200,
                             letterSpacing: '0.04em',
                             textShadow: '0 2px 20px rgba(0,0,0,0.5)',

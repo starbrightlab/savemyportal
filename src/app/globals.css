@@ -51,8 +51,25 @@ body {
   text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-/* Scrollbar Hide */
+/* Enlarged range slider thumb for touch accessibility (65+ users) */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar — thin visible indicator for touch scrollable areas */
 ::-webkit-scrollbar {
-  width: 0px;
+  width: 4px;
   background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
 }

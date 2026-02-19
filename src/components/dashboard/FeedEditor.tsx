@@ -27,6 +27,8 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
         fit: 'cover',
         shuffle: true,
         show_clock: true,
+        clock_position: 'top-right',
+        clock_size: 'medium',
         sleep_schedule: { enabled: false, start: '22:00', end: '07:00' }
     });
 
@@ -112,13 +114,13 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                 {/* Header */}
                 <div className="sticky top-0 bg-gray-900/95 backdrop-blur border-b border-white/10 p-6 flex justify-between items-center z-10">
                     <h2 className="text-2xl font-bold text-white">Edit Feed</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white">✕</button>
+                    <button onClick={onClose} className="text-gray-200 active:text-white p-4 rounded-lg active:bg-white/10 transition-colors text-2xl leading-none min-w-[48px] min-h-[48px] flex items-center justify-center">✕</button>
                 </div>
 
                 <div className="p-6 space-y-8">
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-bold text-gray-400 mb-2">Feed Name</label>
+                        <label className="block text-base font-bold text-gray-300 mb-2">Feed Name</label>
                         <input
                             type="text"
                             className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-electric-blue outline-none"
@@ -150,17 +152,17 @@ export default function FeedEditor({ feed, onClose, onUpdate }: FeedEditorProps)
                     />
 
                     {/* Footer Actions */}
-                    <div className="flex justify-end gap-4 pt-4 border-t border-white/10">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
                         <button
                             onClick={onClose}
-                            className="px-6 py-3 text-gray-300 hover:text-white font-medium transition-colors"
+                            className="px-6 py-3.5 text-gray-200 font-medium transition-colors border border-white/10 rounded-lg active:bg-white/10"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="px-8 py-3 bg-electric-blue hover:bg-blue-600 text-white rounded-full font-bold shadow-lg transition-all disabled:opacity-50"
+                            className="px-8 py-3.5 bg-electric-blue active:bg-blue-600 text-white rounded-lg font-bold shadow-lg transition-all disabled:opacity-50"
                         >
                             {saving ? 'Saving...' : 'Save Configuration'}
                         </button>

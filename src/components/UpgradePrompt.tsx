@@ -61,9 +61,9 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
             <button
                 onClick={handleUpgrade}
                 disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-soft-gold border border-soft-gold/25 hover:border-soft-gold/50 hover:bg-soft-gold/5 rounded-lg transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-5 py-3.5 text-base font-semibold text-soft-gold border border-soft-gold/30 active:bg-soft-gold/10 rounded-lg transition-all disabled:opacity-50"
             >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 3.456a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-3.456A1 1 0 0112 2z" clipRule="evenodd" />
                 </svg>
                 {loading ? 'Loading...' : (
@@ -86,7 +86,7 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                 </div>
                 <div className="flex-1">
                     <h3 className="text-lg font-bold text-white">Upgrade to Pro</h3>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <p className="text-base text-gray-300 mt-1">
                         {feature
                             ? `Unlock ${feature} and more with a one-time Pro upgrade.`
                             : 'Unlock unlimited feeds, sources, video support, and full customisation.'}
@@ -94,15 +94,15 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-2 gap-3 text-base">
                 <div className="space-y-1.5">
-                    <div className="text-gray-500 font-medium text-xs uppercase tracking-wide">Free</div>
-                    <div className="text-gray-400">1 feed, 1 source</div>
-                    <div className="text-gray-400">Photos only</div>
-                    <div className="text-gray-400">Default settings</div>
+                    <div className="text-gray-400 font-medium text-sm uppercase tracking-wide">Free</div>
+                    <div className="text-gray-300">1 feed, 1 source</div>
+                    <div className="text-gray-300">Photos only</div>
+                    <div className="text-gray-300">Default settings</div>
                 </div>
                 <div className="space-y-1.5">
-                    <div className="text-soft-gold font-medium text-xs uppercase tracking-wide">Pro</div>
+                    <div className="text-soft-gold font-medium text-sm uppercase tracking-wide">Pro</div>
                     <div className="text-gray-200">Unlimited feeds & sources</div>
                     <div className="text-gray-200">Photos & videos</div>
                     <div className="text-gray-200">Full customisation</div>
@@ -113,7 +113,7 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                 <button
                     onClick={handleUpgrade}
                     disabled={loading}
-                    className="flex-1 py-3 bg-soft-gold hover:bg-yellow-500 text-black rounded-lg font-bold text-sm transition-all disabled:opacity-50 shadow-lg shadow-soft-gold/20"
+                    className="flex-1 py-3.5 bg-soft-gold active:bg-yellow-500 text-black rounded-lg font-bold text-base transition-all disabled:opacity-50 shadow-lg shadow-soft-gold/20"
                 >
                     {loading ? 'Loading...' : 'Upgrade Now'}
                 </button>
@@ -122,7 +122,7 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                         {priceInfo.discountActive ? (
                             <>
                                 <div className="text-lg font-bold text-soft-gold">${priceInfo.finalPrice}</div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-sm text-gray-400">
                                     <span className="line-through">${priceInfo.basePrice}</span>
                                     {' '}Launch offer
                                 </div>
@@ -130,14 +130,14 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                         ) : (
                             <>
                                 <div className="text-lg font-bold text-white">${priceInfo.finalPrice}</div>
-                                <div className="text-xs text-gray-500">One-time payment</div>
+                                <div className="text-sm text-gray-400">One-time payment</div>
                             </>
                         )}
                     </div>
                 )}
             </div>
 
-            <p className="text-xs text-gray-600 text-center">
+            <p className="text-sm text-gray-400 text-center">
                 Pay once, use forever. Works on all your devices.
             </p>
         </div>
