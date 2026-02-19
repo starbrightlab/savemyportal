@@ -75,6 +75,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const showClock = config.show_clock || false;
     const shuffle = config.shuffle !== false; // default true
     const videoBehavior: VideoBehavior = (config.video_behavior as VideoBehavior) || 'full';
+    const videoSound = config.video_sound || false;
 
     // Normalise transition value — map legacy 'fade' to 'crossfade'
     const transition: TransitionType = (() => {
@@ -423,8 +424,14 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         autoPlay={isCurrent}
                         muted
                         playsInline
-                        onPlay={() => {
-                            if (isCurrent) setIsVideoPlaying(true);
+                        onPlay={(e) => {
+                            if (isCurrent) {
+                                setIsVideoPlaying(true);
+                                // Unmute after autoplay starts (browsers require muted for autoplay)
+                                if (videoSound) {
+                                    (e.target as HTMLVideoElement).muted = false;
+                                }
+                            }
                         }}
                         onEnded={() => {
                             if (isCurrent) {
@@ -442,7 +449,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         }}
                     />
                 ) : (
-                    /* Image element — proxied via CDN */
+                    /* Image element — loaded directly from source CDN */
                     <img
                         src={photo.url}
                         alt="Frame Content"
@@ -451,16 +458,8 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            // First failure: try through proxy as fallback
-                            if (!target.dataset.retried) {
-                                target.dataset.retried = "true";
-                                const proxyBase = process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-                                if (proxyBase && !target.src.includes('proxy-image')) {
-                                    console.warn('Direct image load failed, falling back to proxy:', photo.url);
-                                    target.src = `${proxyBase}/functions/v1/proxy-image?url=${encodeURIComponent(photo.url)}`;
-                                    return;
-                                }
-                            }
+                            if (target.dataset.retried) return;
+                            target.dataset.retried = "true";
                             advance();
                         }}
                     />
