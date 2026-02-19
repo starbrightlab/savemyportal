@@ -10,6 +10,7 @@ export default {
             fontFamily: {
                 sans: ['var(--font-inter)', 'sans-serif'],
                 display: ['var(--font-outfit)', 'sans-serif'],
+                clock: ['var(--font-clock)', 'sans-serif'],
             },
             colors: {
                 'deep-space': '#050505',
