@@ -40,36 +40,6 @@ export default function FeedCard({ feed, sourceCount, onDelete, onEdit }: FeedCa
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all">
             {/* Feed name */}
             <h3 className="font-semibold text-white text-lg leading-tight mb-3">{feed.name}</h3>
-
-            {/* Config pills */}
-            <div className="flex flex-wrap gap-2 mb-4">
-                <span className="px-3 py-1.5 rounded-lg bg-white/[0.08] text-gray-200 text-base font-medium">{interval}s</span>
-                <span className="px-3 py-1.5 rounded-lg bg-white/[0.08] text-gray-200 text-base font-medium">{transition}</span>
-                <span className="px-3 py-1.5 rounded-lg bg-white/[0.08] text-gray-200 text-base font-medium">{fit}</span>
-                {config.shuffle !== false && (
-                    <span className="px-3 py-1.5 rounded-lg bg-white/[0.08] text-gray-200 text-base font-medium">Shuffle</span>
-                )}
-                {config.show_clock && (
-                    <span className="px-3 py-1.5 rounded-lg bg-white/[0.08] text-gray-200 text-base font-medium">
-                        Clock {config.clock_position ? `(${config.clock_position.replace('-', ' ')})` : ''}
-                    </span>
-                )}
-            </div>
-
-            {/* Sources count or empty nudge */}
-            {sourceCount === 0 ? (
-                <button
-                    onClick={onEdit}
-                    className="w-full py-3.5 text-base font-medium text-electric-blue border border-dashed border-electric-blue/30 rounded-lg transition-colors active:bg-electric-blue/10"
-                >
-                    + Add photos to this feed
-                </button>
-            ) : (
-                <p className="text-base text-gray-300 mb-1">
-                    {sourceCount} source{sourceCount !== 1 ? 's' : ''} connected
-                </p>
-            )}
-
             {/* Action buttons — always visible, labeled, large touch targets */}
             <div className="flex flex-col gap-2.5 mt-4">
                 <a
