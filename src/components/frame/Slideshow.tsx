@@ -273,7 +273,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
             {/* Photo Credit — bottom-right, subtle */}
             {showCredit && currentPhoto.credit && (
-                <div className="absolute bottom-6 right-6 z-40 pointer-events-none">
+                <div className="absolute bottom-6 left-6 z-40 pointer-events-none">
                     <div
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
                         style={{ background: 'rgba(0,0,0,0.3)', WebkitBackdropFilter: 'blur(12px)', backdropFilter: 'blur(12px)' }}
