@@ -133,10 +133,10 @@ export default function Landing() {
                             {/* Headline */}
                             <div className="text-center space-y-2">
                                 <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-outfit text-white leading-tight">
-                                    Memories Live On.<br className="md:hidden" />{' '}
-                                    <span className="text-white/90">Your Device Should Too.</span>
+                                    Memories Live On<br />
+                                    <span className="text-white/90">Your Device Should Too</span>
                                 </h2>
-                                <p className="text-base md:text-lg text-white/70 font-light">
+                                <p className="text-base md:text-lg text-white font-light">
                                     Turn any screen into a beautiful digital frame.
                                 </p>
                             </div>
@@ -150,7 +150,7 @@ export default function Landing() {
                             </Link>
 
                             {/* Reassurance */}
-                            <p className="text-sm text-white/50 font-light">
+                            <p className="text-sm text-white/80 font-light">
                                 Free forever • No tech skills needed
                             </p>
                         </div>
@@ -242,10 +242,10 @@ export default function Landing() {
             </div>
             {/* Footer - Hidden in Frame Mode */}
             <footer
-                className={`absolute bottom-0 bg-black/50 w-full p-6 flex flex-col md:flex-row justify-between items-center text-xs text-white/40 z-20 transition-opacity duration-1000
+                className={`absolute bottom-0 bg-black/50 w-full px-6 py-4 flex flex-row justify-between items-center text-xs text-white/40 z-20 transition-opacity duration-1000
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
-                <div className="w-full md:w-1/3 text-center md:text-left hidden md:block">
+                <div className="flex-1 text-left">
                     {user && !isPro && (
                         <Link href="/upgrade" className="text-soft-gold/60 hover:text-soft-gold transition-colors">
                             Upgrade to Pro
@@ -253,7 +253,7 @@ export default function Landing() {
                     )}
                 </div>
 
-                <div className="w-full md:w-1/3 text-center mb-4 md:mb-0">
+                <div className="flex-1 text-center">
                     <span className="hidden md:inline">Made with <span className="text-red-500">♥</span> by </span>
                     <span className="md:hidden">by </span>
                     <a href="https://starbrightlab.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
@@ -261,7 +261,7 @@ export default function Landing() {
                     </a>
                 </div>
 
-                <div className="w-full md:w-1/3 flex justify-center md:justify-end gap-6">
+                <div className="flex-1 flex justify-end gap-6">
                     <Link href="/privacy" className="hover:text-white transition-colors">
                         Privacy
                     </Link>
