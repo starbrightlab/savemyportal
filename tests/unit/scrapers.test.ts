@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { scrapeGooglePhotos, scrapeICloud } from '../../supabase/functions/source-manager/scrapers';
+import { scrapeGooglePhotos, scrapeICloud } from '../../src/lib/scrapers';
 
 // Mock global fetch
 global.fetch = vi.fn();
@@ -30,7 +30,9 @@ describe('scrapeGooglePhotos', () => {
             url: 'https://lh3.googleusercontent.com/photo1',
             width: 100,
             height: 100,
-            captured_at: new Date(1600000000000)
+            captured_at: new Date(1600000000000),
+            media_type: 'image',
+            video_url: null,
         });
     });
 

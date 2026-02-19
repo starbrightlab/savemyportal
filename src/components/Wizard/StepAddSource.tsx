@@ -49,15 +49,16 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
                 if (linkError.code !== '23505') throw linkError;
             }
 
-            // 3. Trigger Initial Scrape — refresh session first to ensure valid token
+            // 3. Trigger Initial Scrape
             setStatus('syncing');
-            await supabase.auth.getSession();
-            const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('source-manager', {
-                body: { sourceId: sourceData.id }
+            const scrapeResponse = await fetch('/api/scrape', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceId: sourceData.id }),
             });
-            if (scrapeError) {
-                const detail = scrapeResult?.error || scrapeError.message;
-                throw new Error(detail);
+            const scrapeResult = await scrapeResponse.json();
+            if (!scrapeResponse.ok) {
+                throw new Error(scrapeResult.error || 'Scrape failed');
             }
 
             setStatus('success');

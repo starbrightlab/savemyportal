@@ -208,14 +208,11 @@ export default function Slideshow({ feed }: SlideshowProps) {
                             finalUrl = `${item.url}=w1920-h1080`;
                         }
 
-                        // Images go through the proxy/CDN; videos use direct source URLs
-                        const proxyUrl = `${process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`;
-
                         return {
                             id: item.id,
                             source_id: item.source_id,
                             media_type: (isVideo ? 'video' : 'image') as 'image' | 'video',
-                            url: isVideo ? finalUrl : proxyUrl,
+                            url: finalUrl,
                             video_url: isVideo ? (item.video_url || finalUrl) : null,
                         };
                     });
@@ -244,6 +241,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
         const nextItem = photos[nextIdx];
         if (nextItem.media_type !== 'video') {
             const img = new Image();
+            img.referrerPolicy = 'no-referrer';
             img.src = nextItem.url;
         }
     }, [currentIndex, photos]);
@@ -453,8 +451,16 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         referrerPolicy="no-referrer"
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            if (target.dataset.retried) return;
-                            target.dataset.retried = "true";
+                            // First failure: try through proxy as fallback
+                            if (!target.dataset.retried) {
+                                target.dataset.retried = "true";
+                                const proxyBase = process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+                                if (proxyBase && !target.src.includes('proxy-image')) {
+                                    console.warn('Direct image load failed, falling back to proxy:', photo.url);
+                                    target.src = `${proxyBase}/functions/v1/proxy-image?url=${encodeURIComponent(photo.url)}`;
+                                    return;
+                                }
+                            }
                             advance();
                         }}
                     />

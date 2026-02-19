@@ -1,6 +1,15 @@
+export interface ScrapedItem {
+    external_id: string;
+    url: string;
+    width: number;
+    height: number;
+    captured_at: Date;
+    media_type: 'image' | 'video';
+    video_url: string | null;
+}
 
-export async function scrapeGooglePhotos(url: string) {
-    console.log("Scraping Google Photos URL (Robust verified):", url);
+export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
+    console.log("Scraping Google Photos URL:", url);
 
     const response = await fetch(url, {
         headers: {
@@ -109,7 +118,7 @@ export async function scrapeGooglePhotos(url: string) {
         return [];
     }
 
-    const parsedItems = [];
+    const parsedItems: ScrapedItem[] = [];
     for (const item of foundItems) {
         const id = item[0];
         const baseUrl = item[1][0];
@@ -123,7 +132,7 @@ export async function scrapeGooglePhotos(url: string) {
         }
 
         // Detect videos — wrapped in try/catch so detection failures default to 'image'
-        let media_type = 'image';
+        let media_type: 'image' | 'video' = 'image';
         let video_url: string | null = null;
         try {
             // Heuristic 1: item[1][3] is a number (video duration in µs)
@@ -161,9 +170,8 @@ export async function scrapeGooglePhotos(url: string) {
 }
 
 
-
-export async function scrapeICloud(url: string) {
-    console.log("Scraping iCloud URL (Robust):", url);
+export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
+    console.log("Scraping iCloud URL:", url);
 
     // Extract token from URL (e.g. https://www.icloud.com/sharedalbum/#B0NGrq0zwGrap7)
     const tokenMatch = url.match(/#([a-zA-Z0-9]+)/);
@@ -177,8 +185,8 @@ export async function scrapeICloud(url: string) {
     let streamUrl = `https://${partition}-sharedstreams.icloud.com/${token}/sharedstreams/webstream`;
 
     // Helper to fetch stream data
-    const fetchStream = async (url: string) => {
-        return await fetch(url, {
+    const fetchStream = async (streamEndpoint: string) => {
+        return await fetch(streamEndpoint, {
             method: 'POST',
             headers: {
                 'Origin': 'https://www.icloud.com',
@@ -246,7 +254,7 @@ export async function scrapeICloud(url: string) {
     }
 
     // Map to common format
-    const parsedItems = photos.map((photo: any) => {
+    const parsedItems: ScrapedItem[] = photos.map((photo: any) => {
         const derivatives = photo.derivatives;
         if (!derivatives) return null;
 
@@ -324,10 +332,10 @@ export async function scrapeICloud(url: string) {
             width: parseInt(best.width || '0') || 0,
             height: parseInt(best.height || '0') || 0,
             captured_at: photo.dateCreated ? new Date(photo.dateCreated) : new Date(),
-            media_type: isVideo ? 'video' : 'image',
+            media_type: (isVideo ? 'video' : 'image') as 'image' | 'video',
             video_url,
         };
-    }).filter((item: any) => item !== null);
+    }).filter((item: any): item is ScrapedItem => item !== null);
 
     console.log(`Successfully resolved URLs for ${parsedItems.length} photos.`);
     return parsedItems;
