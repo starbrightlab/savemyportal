@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <body className={`${inter.variable} ${outfit.variable} ${jakarta.variable} font-sans bg-deep-space text-white antialiased overflow-hidden`}>
                 <Providers>
                     <QueryProvider>
-                        <main className="relative w-screen h-screen overflow-hidden">
+                        <main className="relative min-h-screen">
                             {children}
                         </main>
                     </QueryProvider>

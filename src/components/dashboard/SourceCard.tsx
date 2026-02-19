@@ -37,9 +37,16 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
         <div className="glass-card p-6 relative group border hover:border-electric-blue/50 transition-colors">
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
-                    <span className="text-2xl">
-                        {source.type === 'google_photos' ? '🖼️' : source.type === 'icloud' ? '☁️' : '📁'}
-                    </span>
+                    <div className="relative">
+                        <span className="text-2xl">
+                            {source.type === 'google_photos' ? '🖼️' : source.type === 'icloud' ? '☁️' : '📁'}
+                        </span>
+                        <span className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-900 ${
+                            source.status === 'active' ? 'bg-green-400' :
+                            source.status === 'error' ? 'bg-red-400' :
+                            'bg-yellow-400'
+                        }`} />
+                    </div>
                     <div>
                         <h3 className="font-bold text-white text-lg">
                             {source.name || (source.type === 'google_photos' ? 'Google Photos' : 'iCloud Album')}

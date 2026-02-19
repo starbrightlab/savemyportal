@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import SourceCard from '@/components/dashboard/SourceCard';
@@ -8,7 +8,7 @@ import FeedCard from '@/components/dashboard/FeedCard';
 import FeedEditor from '@/components/dashboard/FeedEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFeeds, useCreateFeed, useDeleteFeed } from '@/hooks/useFeeds';
 import { useAllSources, useDeleteSource } from '@/hooks/useSources';
 import type { Feed } from '@/types/feed';
@@ -18,6 +18,12 @@ interface Message {
     text: string;
 }
 
+const DONATE_TIERS = [
+    { amount: '$5', label: 'Coffee', url: 'https://buy.stripe.com/PLACEHOLDER_5' },
+    { amount: '$10', label: 'Server Month', url: 'https://buy.stripe.com/PLACEHOLDER_10', highlighted: true },
+    { amount: '$25', label: 'Champion', url: 'https://buy.stripe.com/PLACEHOLDER_25' },
+];
+
 export default function Dashboard() {
     const { user, loading: authLoading } = useAuth();
     const [newUrl, setNewUrl] = useState('');
@@ -25,6 +31,9 @@ export default function Dashboard() {
     const [message, setMessage] = useState<Message | null>(null);
     const [showNewFeedInput, setShowNewFeedInput] = useState(false);
     const [newFeedName, setNewFeedName] = useState('');
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -38,6 +47,24 @@ export default function Dashboard() {
     const { data: sources = [] } = useAllSources(user?.id);
 
     const { data: feeds = [], isLoading: loadingFeeds } = useFeeds(user?.id);
+
+    // Get per-feed source counts for empty feed nudge
+    const { data: feedSourceCounts = {} } = useQuery({
+        queryKey: ['feed-source-counts', user?.id],
+        queryFn: async () => {
+            if (!user?.id) return {};
+            const { data } = await supabase
+                .from('feed_sources')
+                .select('feed_id');
+            if (!data) return {};
+            const counts: Record<string, number> = {};
+            data.forEach(fs => {
+                counts[fs.feed_id] = (counts[fs.feed_id] || 0) + 1;
+            });
+            return counts;
+        },
+        enabled: !!user?.id,
+    });
 
     const createFeedMutation = useCreateFeed();
     const deleteFeedMutation = useDeleteFeed();
@@ -124,6 +151,37 @@ export default function Dashboard() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (!confirmingDelete) {
+            setConfirmingDelete(true);
+            deleteTimeoutRef.current = setTimeout(() => setConfirmingDelete(false), 5000);
+            return;
+        }
+
+        // Second tap — actually delete
+        if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+        setDeleting(true);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error('No session');
+
+            const { data, error } = await supabase.functions.invoke('delete-account', {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+
+            if (error) throw error;
+
+            await supabase.auth.signOut();
+            router.push('/');
+        } catch (err: any) {
+            console.error('Account deletion failed:', err);
+            setMessage({ type: 'error', text: 'Failed to delete account. Please try again.' });
+            setDeleting(false);
+            setConfirmingDelete(false);
+        }
+    };
+
     if (authLoading || !user) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Settings...</div>;
 
     return (
@@ -136,7 +194,7 @@ export default function Dashboard() {
                         <h1 className="text-4xl md:text-4xl font-bold font-display text-white">Settings</h1>
                     </div>
                 </div>
-                
+
                 <div className="flex gap-4 mb-2">
                     <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
                         Back
@@ -207,6 +265,7 @@ export default function Dashboard() {
                             <FeedCard
                                 key={feed.id}
                                 feed={feed}
+                                sourceCount={feedSourceCounts[feed.id] ?? 0}
                                 onDelete={() => feed.id && deleteFeedMutation.mutate(feed.id)}
                                 onEdit={() => setEditingFeed(feed)}
                             />
@@ -215,11 +274,11 @@ export default function Dashboard() {
                 )}
             </section>
 
-            {/* Sources Section (Secondary) */}
-            <section className="opacity-80 hover:opacity-100 transition-opacity mb-4">
+            {/* Sources Section */}
+            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
                 <h2 className="text-xl font-bold mb-3 text-gray-300">Sources</h2>
 
-                {/* Add Source Input - Condensed */}
+                {/* Add Source Input */}
                 <div className="glass-card p-2 mb-4 border border-white/10 flex flex-col md:flex-row gap-4">
                     <input
                         type="text"
@@ -261,30 +320,77 @@ export default function Dashboard() {
                     </div>
                 )}
             </section>
-            <section className="opacity-80 hover:opacity-100 transition-opacity">
+
+            {/* Support Section */}
+            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
+                <h2 className="text-xl font-bold mb-3 text-gray-300">Support SaveMyPortal</h2>
+                <p className="text-sm text-gray-500 mb-4">Help keep SaveMyPortal free and actively developed.</p>
+                <div className="flex flex-wrap gap-3">
+                    {DONATE_TIERS.map((tier) => (
+                        <a
+                            key={tier.amount}
+                            href={tier.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105 ${
+                                tier.highlighted
+                                    ? 'border border-soft-gold/50 bg-soft-gold/10 text-soft-gold'
+                                    : 'border border-white/10 bg-white/5 text-gray-300 hover:border-soft-gold/30 hover:text-soft-gold'
+                            }`}
+                        >
+                            <span className="font-bold">{tier.amount}</span>
+                            <span className="text-xs opacity-70">{tier.label}</span>
+                        </a>
+                    ))}
+                </div>
+            </section>
+
+            {/* Account Section */}
+            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
                 <h2 className="text-xl font-bold mb-3 text-gray-300">Account</h2>
                 <div className="flex gap-4 mb-2">
                     <button
                         onClick={() => supabase.auth.signOut()}
-                        className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-red-400 hover:text-red-300"
+                        className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-gray-400 hover:text-white"
                     >
                         Sign Out
                     </button>
                 </div>
             </section>
 
+            {/* Danger Zone */}
+            <section className="mb-8">
+                <div className="border border-red-500/20 rounded-xl bg-red-500/5 p-6">
+                    <h2 className="text-lg font-bold text-red-400 mb-2">Danger Zone</h2>
+                    <p className="text-sm text-gray-500 mb-4">
+                        Permanently delete your account and all associated data. This cannot be undone.
+                    </p>
+                    <button
+                        onClick={handleDeleteAccount}
+                        disabled={deleting}
+                        className={`px-6 py-3 rounded-full text-sm font-semibold transition-all ${
+                            deleting
+                                ? 'bg-red-500/20 text-red-300 opacity-50 cursor-not-allowed'
+                                : confirmingDelete
+                                    ? 'bg-red-500/30 text-red-200 border border-red-500/50 animate-pulse'
+                                    : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
+                        }`}
+                    >
+                        {deleting ? 'Deleting...' : confirmingDelete ? 'Tap Again to Confirm' : 'Delete Account'}
+                    </button>
+                </div>
+            </section>
+
             {/* Editor Modal */}
-            {
-                editingFeed && (
-                    <FeedEditor
-                        feed={editingFeed}
-                        onClose={() => setEditingFeed(null)}
-                        onUpdate={() => {
-                            queryClient.invalidateQueries({ queryKey: ['feeds'] });
-                        }}
-                    />
-                )
-            }
-        </div >
+            {editingFeed && (
+                <FeedEditor
+                    feed={editingFeed}
+                    onClose={() => setEditingFeed(null)}
+                    onUpdate={() => {
+                        queryClient.invalidateQueries({ queryKey: ['feeds'] });
+                    }}
+                />
+            )}
+        </div>
     );
 }
