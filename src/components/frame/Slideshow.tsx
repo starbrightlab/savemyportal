@@ -160,7 +160,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         return {
                             id: item.id,
                             source_id: item.source_id,
-                            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
+                            url: `${process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
                         };
                     });
 

@@ -65,8 +65,8 @@ export default function Landing() {
     const startFrame = async () => {
         try {
             await document.documentElement.requestFullscreen();
-        } catch (e) {
-            console.log("Fullscreen request failed (likely need gesture):", e);
+        } catch {
+            // Expected on devices that require a user gesture or don't support fullscreen
         }
 
         setIsFrameMode(true);
@@ -75,7 +75,7 @@ export default function Landing() {
 
     const exitFrame = () => {
         if (document.fullscreenElement) {
-            document.exitFullscreen().catch(err => console.log(err));
+            document.exitFullscreen().catch(() => {});
         }
         setIsFrameMode(false);
         wakeLockRef.current?.pause();

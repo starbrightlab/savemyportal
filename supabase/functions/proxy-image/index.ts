@@ -81,7 +81,7 @@ serve(async (req) => {
             headers: {
                 'Content-Type': contentType,
                 ...corsHeaders,
-                'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+                'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=2592000',
             }
         })
     } catch (error) {

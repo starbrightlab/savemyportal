@@ -21,7 +21,7 @@ import { ReactNode } from 'react';
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${inter.variable} ${outfit.variable} ${jakarta.variable} font-sans bg-deep-space text-white antialiased overflow-hidden`}>
+            <body className={`${inter.variable} ${outfit.variable} ${jakarta.variable} font-sans bg-deep-space text-white antialiased`}>
                 <Providers>
                     <QueryProvider>
                         <main className="relative min-h-screen">
