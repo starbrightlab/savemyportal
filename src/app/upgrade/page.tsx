@@ -16,6 +16,9 @@ export default function Upgrade() {
     const { isPro } = useTier();
     const [loading, setLoading] = useState(false);
     const [priceInfo, setPriceInfo] = useState<PriceInfo | null>(null);
+    const [showPromoInput, setShowPromoInput] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [promoError, setPromoError] = useState('');
 
     useEffect(() => {
         fetch('/api/stripe/price')
@@ -24,14 +27,23 @@ export default function Upgrade() {
             .catch(() => {});
     }, []);
 
-    const handleUpgrade = async () => {
+    const handleUpgrade = async (code?: string) => {
         setLoading(true);
+        setPromoError('');
         try {
-            const res = await fetch('/api/stripe/create-checkout', { method: 'POST' });
+            const fetchOptions: RequestInit = {
+                method: 'POST',
+                ...(code ? {
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ promoCode: code }),
+                } : {}),
+            };
+            const res = await fetch('/api/stripe/create-checkout', fetchOptions);
             const data = await res.json();
             if (data.url) {
                 window.location.href = data.url;
             } else {
+                setPromoError(data.error || 'Something went wrong');
                 setLoading(false);
             }
         } catch {
@@ -143,7 +155,7 @@ export default function Upgrade() {
                         {/* CTA */}
                         <div className="text-center space-y-4">
                             <button
-                                onClick={handleUpgrade}
+                                onClick={() => handleUpgrade()}
                                 disabled={loading}
                                 className="px-12 py-4 bg-soft-gold hover:bg-yellow-500 text-black rounded-xl font-bold text-lg transition-all shadow-lg shadow-soft-gold/20 disabled:opacity-50"
                             >
@@ -152,6 +164,36 @@ export default function Upgrade() {
                             <p className="text-xs text-gray-600">
                                 Pay once, use forever. Works on all your devices. Processed securely by Stripe.
                             </p>
+
+                            {/* Promo code input */}
+                            {!showPromoInput ? (
+                                <button
+                                    onClick={() => setShowPromoInput(true)}
+                                    className="text-xs text-gray-600 hover:text-gray-400 transition-colors underline underline-offset-2"
+                                >
+                                    Have a code?
+                                </button>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2 max-w-xs mx-auto">
+                                    <input
+                                        type="text"
+                                        value={promoCode}
+                                        onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                                        placeholder="Enter code"
+                                        className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-soft-gold/50"
+                                    />
+                                    <button
+                                        onClick={() => promoCode.trim() && handleUpgrade(promoCode.trim())}
+                                        disabled={loading || !promoCode.trim()}
+                                        className="px-4 py-2 bg-soft-gold hover:bg-yellow-500 text-black rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+                                    >
+                                        {loading ? '...' : 'Apply'}
+                                    </button>
+                                </div>
+                            )}
+                            {promoError && (
+                                <p className="text-xs text-red-400">{promoError}</p>
+                            )}
                         </div>
 
                         {/* FAQ */}
