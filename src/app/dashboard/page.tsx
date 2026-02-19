@@ -124,36 +124,38 @@ export default function Dashboard() {
         }
     };
 
-    if (authLoading || !user) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Dashboard...</div>;
+    if (authLoading || !user) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Settings...</div>;
 
     return (
-        <div className="min-h-screen pt-24 px-6 max-w-7xl mx-auto pb-20 overflow-y-auto">
+        <div className="min-h-screen pt-4 px-6 max-w-7xl mx-auto pb-20 overflow-y-auto">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
                 <div>
                     <div className="flex items-center gap-4 mb-2">
                         <img src="/savemyportal-logo-white.svg" alt="Logo" className="w-12 h-12" />
-                        <h1 className="text-4xl md:text-6xl font-bold font-display text-white">Dashboard</h1>
+                        <h1 className="text-4xl md:text-4xl font-bold font-display text-white">Settings</h1>
                     </div>
-                    <p className="text-gray-400">Manage your connected albums and device settings.</p>
                 </div>
-                <div className="flex gap-4">
+                
+                <div className="flex gap-4 mb-2">
+                {/*
                     <button
                         onClick={() => supabase.auth.signOut()}
                         className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-red-400 hover:text-red-300"
                     >
                         Sign Out
                     </button>
+                */}
                     <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
-                        View Frame
+                        Back
                     </Link>
                 </div>
             </div>
 
             {/* My Feeds Section */}
-            <section className="mb-16">
-                <div className="flex justify-between items-end mb-6">
-                    <h2 className="text-3xl font-bold text-white">My Feeds</h2>
+            <section className="mb-6">
+                <div className="flex justify-between items-end mb-3">
+                    <h2 className="text-xl font-bold text-white">My Feeds</h2>
                     {feeds.length > 0 && !showNewFeedInput && (
                         <button
                             onClick={() => setShowNewFeedInput(true)}
@@ -166,7 +168,7 @@ export default function Dashboard() {
 
                 {/* Inline New Feed Input */}
                 {showNewFeedInput && (
-                    <div className="glass-card p-6 mb-6 border border-electric-blue/30 flex flex-col sm:flex-row gap-4">
+                    <div className="glass-card p-2 mb-4 border border-electric-blue/30 flex flex-col sm:flex-row gap-4">
                         <input
                             type="text"
                             placeholder="Feed name (e.g. 'Living Room')"
@@ -208,7 +210,7 @@ export default function Dashboard() {
                         </button>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {feeds.map(feed => (
                             <FeedCard
                                 key={feed.id}
@@ -223,10 +225,10 @@ export default function Dashboard() {
 
             {/* Sources Section (Secondary) */}
             <section className="opacity-80 hover:opacity-100 transition-opacity">
-                <h2 className="text-2xl font-bold mb-6 text-gray-300">Sources Library</h2>
+                <h2 className="text-xl font-bold mb-3 text-gray-300">Sources</h2>
 
                 {/* Add Source Input - Condensed */}
-                <div className="glass-card p-6 mb-8 border border-white/10 flex flex-col md:flex-row gap-4">
+                <div className="glass-card p-2 mb-4 border border-white/10 flex flex-col md:flex-row gap-4">
                     <input
                         type="text"
                         placeholder="Paste Google Photos or iCloud Shared Album Link..."
@@ -243,7 +245,7 @@ export default function Dashboard() {
                     </button>
                 </div>
                 {message && (
-                    <div className={`mb-6 text-sm font-medium ${message.type === 'error' ? 'text-red-400' :
+                    <div className={`mb-4 text-sm font-medium ${message.type === 'error' ? 'text-red-400' :
                         message.type === 'success' ? 'text-green-400' : 'text-blue-400'
                         }`}>
                         {message.text}
@@ -255,7 +257,7 @@ export default function Dashboard() {
                         No sources connected.
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {sources.map(source => (
                             <SourceCard
                                 key={source.id}
@@ -266,6 +268,17 @@ export default function Dashboard() {
                         ))}
                     </div>
                 )}
+            </section>
+            <section className="opacity-80 hover:opacity-100 transition-opacity">
+                <h2 className="text-xl font-bold mb-3 text-gray-300">Account</h2>
+                <div className="flex gap-4 mb-2">
+                    <button
+                        onClick={() => supabase.auth.signOut()}
+                        className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-red-400 hover:text-red-300"
+                    >
+                        Sign Out
+                    </button>
+                </div>
             </section>
 
             {/* Editor Modal */}
