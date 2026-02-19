@@ -68,6 +68,16 @@ export default function Dashboard() {
     const deleteFeedMutation = useDeleteFeed();
     const deleteSourceMutation = useDeleteSource();
 
+    /** Ensure the session token is fresh before calling an edge function. */
+    const refreshSession = async () => {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (!session || error) {
+            // Try to refresh
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) throw new Error('Session expired — please sign in again.');
+        }
+    };
+
     const addSourceMutation = useMutation({
         mutationFn: async (url: string) => {
             const type = identifySourceType(url);
@@ -80,10 +90,14 @@ export default function Dashboard() {
                 .single();
             if (error) throw error;
 
+            await refreshSession();
             const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
                 body: { sourceId: source.id }
             });
-            if (scrapeError) throw scrapeError;
+            if (scrapeError) {
+                const detail = scrapeData?.error || scrapeError.message;
+                throw new Error(detail);
+            }
 
             return { source, count: scrapeData.count };
         },
@@ -99,10 +113,14 @@ export default function Dashboard() {
 
     const syncSourceMutation = useMutation({
         mutationFn: async (id: string) => {
+            await refreshSession();
             const { data: scrapeData, error } = await supabase.functions.invoke('source-manager', {
                 body: { sourceId: id }
             });
-            if (error) throw error;
+            if (error) {
+                const detail = scrapeData?.error || error.message;
+                throw new Error(detail);
+            }
             return scrapeData;
         },
         onSuccess: (data) => {
