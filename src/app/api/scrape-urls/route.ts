@@ -126,9 +126,8 @@ export async function POST(request: NextRequest) {
                     last_scraped_at: new Date().toISOString(),
                     status: 'active',
                     error_message: null,
-                }).eq('id', source_id).then(
-                    () => {},
-                    (err) => console.error(`Failed to update source status for ${source_id}:`, err)
+                }).eq('id', source_id).then(() => {}).catch(err =>
+                    console.error(`Failed to update source status for ${source_id}:`, err)
                 );
             }
         }
