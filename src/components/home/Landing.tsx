@@ -127,7 +127,7 @@ export default function Landing() {
                         <div className="flex flex-col items-center gap-8">
                             <Link
                                 href="/onboarding"
-                                className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl"
+                                className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl mb-8"
                                 style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
                             >
                                 Get Started
@@ -161,7 +161,7 @@ export default function Landing() {
                                             value={activeFeedId || ''}
                                             onChange={(e) => handleFeedChange(e.target.value)}
                                             className="appearance-none w-full px-6 py-3.5 rounded-2xl text-lg font-semibold text-center text-white border border-white/25 cursor-pointer focus:outline-none focus:border-white/50 transition-all pr-12"
-                                            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+                                            style={{ background: 'rgba(0,0,0,0.05)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
                                         >
                                             {feeds.map(f => (
                                                 <option key={f.id} value={f.id} className="bg-gray-900 text-white">
