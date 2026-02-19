@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Feed, TransitionType, VideoBehavior } from '@/types/feed';
 
+const DEBUG = process.env.NODE_ENV === 'development';
+
 interface Photo {
     id: string;
     source_id: string;
@@ -295,7 +297,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
         lastRescrapeRef.current = Date.now();
         rescrapeAttemptRef.current++;
 
-        console.log(`[Slideshow] Re-scraping URLs (attempt ${rescrapeAttemptRef.current})...`);
+        DEBUG && console.log(`[Slideshow] Re-scraping URLs (attempt ${rescrapeAttemptRef.current})...`);
 
         try {
             const response = await fetch('/api/scrape-urls', {
@@ -328,7 +330,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 setCurrentIndex(0);
                 failCountRef.current = 0;
                 rescrapeAttemptRef.current = 0;
-                console.log(`[Slideshow] Re-scrape succeeded — ${processedPhotos.length} fresh URLs loaded.`);
+                DEBUG && console.log(`[Slideshow] Re-scrape succeeded — ${processedPhotos.length} fresh URLs loaded.`);
             }
         } catch (err) {
             console.warn('[Slideshow] Re-scrape failed, backoff will handle retry:', err);

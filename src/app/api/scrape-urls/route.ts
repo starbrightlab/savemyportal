@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         // 3. Scrape all sources in parallel
         const scrapeResults = await Promise.allSettled(
             sources.map(async (source) => {
-                console.log(`Scraping source ${source.id}: ${source.type} - ${source.url}`);
+                // Scrape source (logging handled in scraper module)
 
                 let items: Awaited<ReturnType<typeof scrapeGooglePhotos>> = [];
 

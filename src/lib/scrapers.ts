@@ -1,3 +1,5 @@
+const DEBUG = process.env.NODE_ENV === 'development';
+
 export interface ScrapedItem {
     external_id: string;
     url: string;
@@ -9,7 +11,7 @@ export interface ScrapedItem {
 }
 
 export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
-    console.log("Scraping Google Photos URL:", url);
+    DEBUG && console.log("Scraping Google Photos URL:", url);
 
     const response = await fetch(url, {
         headers: {
@@ -22,7 +24,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
     }
 
     const html = await response.text();
-    console.log(`Fetched HTML length: ${html.length}`);
+    DEBUG && console.log(`Fetched HTML length: ${html.length}`);
 
     // Strategy: robust manual parsing
     const callbackRegex = /AF_initDataCallback\s*\(/g;
@@ -103,7 +105,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
                 });
 
                 if (validPhotos.length > 0) {
-                    console.log(`Found ${validPhotos.length} valid photos in callback key '${key}'`);
+                    DEBUG && console.log(`Found ${validPhotos.length} valid photos in callback key '${key}'`);
                     foundItems = validPhotos;
                     break;
                 }
@@ -165,13 +167,13 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
         });
     }
 
-    console.log(`Total parsed items: ${parsedItems.length}`);
+    DEBUG && console.log(`Total parsed items: ${parsedItems.length}`);
     return parsedItems;
 }
 
 
 export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
-    console.log("Scraping iCloud URL:", url);
+    DEBUG && console.log("Scraping iCloud URL:", url);
 
     // Extract token from URL (e.g. https://www.icloud.com/sharedalbum/#B0NGrq0zwGrap7)
     const tokenMatch = url.match(/#([a-zA-Z0-9]+)/);
@@ -204,7 +206,7 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
     if (response.status === 330 || (response.status >= 300 && response.status < 400)) {
         const newHost = response.headers.get('X-Apple-MMe-Host');
         if (newHost) {
-            console.log(`Redirecting to new partition host: ${newHost}`);
+            DEBUG && console.log(`Redirecting to new partition host: ${newHost}`);
             currentHost = newHost;
             streamUrl = `https://${newHost}/${token}/sharedstreams/webstream`;
             response = await fetchStream(streamUrl);
@@ -219,17 +221,17 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
     const photos = data.photos;
 
     if (!photos || !Array.isArray(photos)) {
-        console.log("No photos found in iCloud stream");
+        DEBUG && console.log("No photos found in iCloud stream");
         return [];
     }
 
-    console.log(`Found ${photos.length} raw photos in stream.`);
+    DEBUG && console.log(`Found ${photos.length} raw photos in stream.`);
 
     // 2. Fetch Asset URLs
     const photoGuids = photos.map((p: any) => p.photoGuid);
     const assetUrlEndpoint = `https://${currentHost}/${token}/sharedstreams/webasseturls`;
 
-    console.log(`Fetching asset URLs from: ${assetUrlEndpoint}`);
+    DEBUG && console.log(`Fetching asset URLs from: ${assetUrlEndpoint}`);
 
     const assetResponse = await fetch(assetUrlEndpoint, {
         method: 'POST',
@@ -337,6 +339,6 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
         };
     }).filter((item: any): item is ScrapedItem => item !== null);
 
-    console.log(`Successfully resolved URLs for ${parsedItems.length} photos.`);
+    DEBUG && console.log(`Successfully resolved URLs for ${parsedItems.length} photos.`);
     return parsedItems;
 }

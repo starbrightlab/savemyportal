@@ -1,1 +1,0 @@
-self.__NEXT_FONT_MANIFEST='{"pages":{},"app":{"/Users/andrewlawson/development/portal/src/app/layout":["static/media/e4af272ccee01ff0-s.p.woff2","static/media/7b0b24f36b1a6d0b-s.p.woff2","static/media/636a5ac981f94f8b-s.p.woff2"]},"appUsingSizeAdjust":true,"pagesUsingSizeAdjust":false}';
