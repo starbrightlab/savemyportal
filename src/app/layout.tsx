@@ -8,6 +8,7 @@ const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' });
 const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['200', '300'], variable: '--font-clock' });
 
 export const metadata = {
+    metadataBase: new URL('https://savemyportal.com'),
     title: 'SaveMyPortal — Memories Live On. Your Device Should Too.',
     description: 'Turn any screen into a beautiful digital frame. Free forever, no tech skills needed. Works with Google Photos and iCloud.',
     keywords: ['digital photo frame', 'photo frame app', 'smart display', 'photo slideshow', 'SaveMyPortal'],
