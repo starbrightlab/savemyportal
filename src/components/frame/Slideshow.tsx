@@ -92,6 +92,13 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
+    // Stale URL detection — track consecutive failures and trigger background re-scrape
+    const failCountRef = useRef(0);               // consecutive load failures (resets on success)
+    const lastRescrapeRef = useRef(0);             // timestamp (ms) of last re-scrape attempt
+    const rescrapeAttemptRef = useRef(0);           // how many re-scrapes attempted (for backoff)
+    const rescrapeInFlightRef = useRef(false);      // prevent concurrent re-scrapes
+    const sourceIdsRef = useRef<string[]>([]);      // captured during loadPhotos for re-scrape
+
     // Wake Lock — keep the Portal screen alive while the slideshow runs
     useEffect(() => {
         let wakeLock: WakeLockSentinel | null = null;
@@ -157,7 +164,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
         return () => clearInterval(timer);
     }, [config.sleep_schedule?.enabled, config.sleep_schedule?.start, config.sleep_schedule?.end]);
 
-    // Fetch photos on mount — fall back to stock imagery if nothing is available
+    // Fetch photos on mount — scrape fresh URLs per device session
     useEffect(() => {
         const loadPhotos = async () => {
             setLoading(true);
@@ -173,11 +180,8 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     return;
                 }
 
-                let query = supabase
-                    .from('source_items')
-                    .select('*')
-                    .order('captured_at', { ascending: false })
-                    .limit(100);
+                // 1. Get source IDs for this feed
+                let sourceIds: string[] = [];
 
                 if (feed) {
                     const { data: feedSources } = await supabase
@@ -186,8 +190,21 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         .eq('feed_id', feed.id);
 
                     if (feedSources && feedSources.length > 0) {
-                        const sourceIds = feedSources.map(fs => fs.source_id);
-                        query = query.in('source_id', sourceIds);
+                        sourceIds = feedSources.map(fs => fs.source_id);
+                    } else {
+                        setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                        setUsingFallback(true);
+                        setLoading(false);
+                        return;
+                    }
+                } else {
+                    // No feed specified — get all user sources
+                    const { data: allSources } = await supabase
+                        .from('sources')
+                        .select('id');
+
+                    if (allSources && allSources.length > 0) {
+                        sourceIds = allSources.map(s => s.id);
                     } else {
                         setPhotos(shuffleArray(FALLBACK_PHOTOS));
                         setUsingFallback(true);
@@ -196,12 +213,25 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     }
                 }
 
-                const { data, error } = await query;
+                // Save source IDs for potential re-scrape later
+                sourceIdsRef.current = sourceIds;
 
-                if (error) throw error;
+                // 2. Call scrape-urls to get fresh CDN links for this device
+                const response = await fetch('/api/scrape-urls', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sourceIds }),
+                });
 
-                if (data && data.length > 0) {
-                    const processedPhotos: Photo[] = data.map(item => {
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Scrape failed: ${response.status}`);
+                }
+
+                const { items } = await response.json();
+
+                if (items && items.length > 0) {
+                    const processedPhotos: Photo[] = items.map((item: any) => {
                         const isVideo = item.media_type === 'video';
                         let finalUrl = item.url;
 
@@ -210,7 +240,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         }
 
                         return {
-                            id: item.id,
+                            id: item.external_id,
                             source_id: item.source_id,
                             media_type: (isVideo ? 'video' : 'image') as 'image' | 'video',
                             url: finalUrl,
@@ -235,18 +265,6 @@ export default function Slideshow({ feed }: SlideshowProps) {
         loadPhotos();
     }, [feed, shuffle]);
 
-    // Preload the next item into browser cache (images only — videos stream on demand)
-    useEffect(() => {
-        if (photos.length <= 1) return;
-        const nextIdx = (currentIndex + 1) % photos.length;
-        const nextItem = photos[nextIdx];
-        if (nextItem.media_type !== 'video') {
-            const img = new Image();
-            img.referrerPolicy = 'no-referrer';
-            img.src = nextItem.url;
-        }
-    }, [currentIndex, photos]);
-
     // Transition duration in ms
     const TRANSITION_MS = transition === 'none' ? 0 : 1200;
 
@@ -268,6 +286,91 @@ export default function Slideshow({ feed }: SlideshowProps) {
             setIsTransitioning(false);
         }, TRANSITION_MS);
     }, [photos.length, transition, TRANSITION_MS]);
+
+    // Background re-scrape — fetch fresh CDN URLs when stale URLs are detected
+    const rescrape = useCallback(async () => {
+        if (sourceIdsRef.current.length === 0) return;
+
+        rescrapeInFlightRef.current = true;
+        lastRescrapeRef.current = Date.now();
+        rescrapeAttemptRef.current++;
+
+        console.log(`[Slideshow] Re-scraping URLs (attempt ${rescrapeAttemptRef.current})...`);
+
+        try {
+            const response = await fetch('/api/scrape-urls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceIds: sourceIdsRef.current }),
+            });
+
+            if (!response.ok) throw new Error(`Re-scrape failed: ${response.status}`);
+
+            const { items } = await response.json();
+
+            if (items && items.length > 0) {
+                const processedPhotos: Photo[] = items.map((item: any) => {
+                    const isVideo = item.media_type === 'video';
+                    let finalUrl = item.url;
+                    if (item.url.includes('googleusercontent.com') && !item.url.includes('=')) {
+                        finalUrl = `${item.url}=w1920-h1080`;
+                    }
+                    return {
+                        id: item.external_id,
+                        source_id: item.source_id,
+                        media_type: (isVideo ? 'video' : 'image') as 'image' | 'video',
+                        url: finalUrl,
+                        video_url: isVideo ? (item.video_url || finalUrl) : null,
+                    };
+                });
+
+                setPhotos(shuffle ? shuffleArray(processedPhotos) : processedPhotos);
+                setCurrentIndex(0);
+                failCountRef.current = 0;
+                rescrapeAttemptRef.current = 0;
+                console.log(`[Slideshow] Re-scrape succeeded — ${processedPhotos.length} fresh URLs loaded.`);
+            }
+        } catch (err) {
+            console.warn('[Slideshow] Re-scrape failed, backoff will handle retry:', err);
+        } finally {
+            rescrapeInFlightRef.current = false;
+        }
+    }, [shuffle]);
+
+    // Rate-limited re-scrape trigger — checks failure threshold + exponential backoff
+    const maybeRescrape = useCallback(() => {
+        // Don't re-scrape fallback images or if already in-flight
+        if (usingFallback) return;
+        if (rescrapeInFlightRef.current) return;
+        if (failCountRef.current < 3) return;
+
+        // Exponential backoff: 30s → 60s → 120s → 240s → 5min cap
+        const backoffMs = Math.min(30_000 * Math.pow(2, rescrapeAttemptRef.current), 300_000);
+        const elapsed = Date.now() - lastRescrapeRef.current;
+        if (elapsed < backoffMs) return;
+
+        rescrape();
+    }, [usingFallback, rescrape]);
+
+    // Preload the next item into browser cache (images only — videos stream on demand)
+    // Also detects stale URLs one slide ahead so we can re-scrape before the user sees an error
+    useEffect(() => {
+        if (photos.length <= 1) return;
+        const nextIdx = (currentIndex + 1) % photos.length;
+        const nextItem = photos[nextIdx];
+        if (nextItem.media_type !== 'video') {
+            const img = new Image();
+            img.referrerPolicy = 'no-referrer';
+            img.onload = () => {
+                failCountRef.current = 0;
+            };
+            img.onerror = () => {
+                failCountRef.current++;
+                maybeRescrape();
+            };
+            img.src = nextItem.url;
+        }
+    }, [currentIndex, photos, maybeRescrape]);
 
     // Cleanup transition timeout on unmount
     useEffect(() => {
@@ -426,6 +529,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         playsInline
                         onPlay={(e) => {
                             if (isCurrent) {
+                                failCountRef.current = 0; // successful load — reset stale detection
                                 setIsVideoPlaying(true);
                                 // Unmute after autoplay starts (browsers require muted for autoplay)
                                 if (videoSound) {
@@ -443,6 +547,8 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         }}
                         onError={() => {
                             if (isCurrent) {
+                                failCountRef.current++;
+                                maybeRescrape();
                                 setIsVideoPlaying(false);
                                 advance();
                             }
@@ -456,10 +562,15 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         className="absolute inset-0 w-full h-full z-10"
                         style={{ objectFit }}
                         referrerPolicy="no-referrer"
+                        onLoad={() => {
+                            failCountRef.current = 0; // successful load — reset stale detection
+                        }}
                         onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             if (target.dataset.retried) return;
                             target.dataset.retried = "true";
+                            failCountRef.current++;
+                            maybeRescrape();
                             advance();
                         }}
                     />

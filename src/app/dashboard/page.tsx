@@ -80,10 +80,11 @@ export default function Dashboard() {
                 .single();
             if (error) throw error;
 
-            const response = await fetch('/api/scrape', {
+            // Validate the source by scraping (doesn't store items — just confirms URL works)
+            const response = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sourceId: source.id }),
+                body: JSON.stringify({ sourceIds: [source.id] }),
             });
             const scrapeData = await response.json();
             if (!response.ok) throw new Error(scrapeData.error || 'Scrape failed');
@@ -102,10 +103,11 @@ export default function Dashboard() {
 
     const syncSourceMutation = useMutation({
         mutationFn: async (id: string) => {
-            const response = await fetch('/api/scrape', {
+            // Health check — confirm source is still accessible and report photo count
+            const response = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sourceId: id }),
+                body: JSON.stringify({ sourceIds: [id] }),
             });
             const scrapeData = await response.json();
             if (!response.ok) throw new Error(scrapeData.error || 'Sync failed');

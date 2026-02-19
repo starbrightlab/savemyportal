@@ -49,16 +49,19 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
                 if (linkError.code !== '23505') throw linkError;
             }
 
-            // 3. Trigger Initial Scrape
+            // 3. Validate source by doing a quick scrape (doesn't store items — just confirms the URL works)
             setStatus('syncing');
-            const scrapeResponse = await fetch('/api/scrape', {
+            const scrapeResponse = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sourceId: sourceData.id }),
+                body: JSON.stringify({ sourceIds: [sourceData.id] }),
             });
             const scrapeResult = await scrapeResponse.json();
             if (!scrapeResponse.ok) {
-                throw new Error(scrapeResult.error || 'Scrape failed');
+                throw new Error(scrapeResult.error || 'Validation failed');
+            }
+            if (!scrapeResult.items || scrapeResult.items.length === 0) {
+                throw new Error('No photos found in this album. Please check the link and try again.');
             }
 
             setStatus('success');
