@@ -3,6 +3,9 @@
 // Do not upgrade to Next.js 15+ or React 19 until hardware support is verified.
 const nextConfig = {
     reactStrictMode: true,
+    // Ensure framer-motion is transpiled for Chrome 98 compatibility.
+    // framer-motion ships pre-bundled ESM that may contain modern syntax.
+    transpilePackages: ['framer-motion'],
     images: {
         remotePatterns: [
             {

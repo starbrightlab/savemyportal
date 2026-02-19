@@ -3,22 +3,24 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url)
+    const url = new URL(request.url)
+    const searchParams = url.searchParams
     const code = searchParams.get('code')
-    // if "next" is in param, use it as the redirect target
-    const next = searchParams.get('next') ?? '/'
+    // Validate "next" param to prevent open redirects.
+    // Must be a relative path starting with "/" and not contain "//".
+    const rawNext = searchParams.get('next') ?? '/'
+    const next = (rawNext.startsWith('/') && !rawNext.startsWith('//')) ? rawNext : '/'
 
-    // Determine the base URL for redirection
-    // In production/preview, we want to respect the environment URL if set, 
-    // but for previews, the origin request came from is usually best.
-    // However, if the user complains about "random subdomains", we might want to force the site URL.
-    // Let's try to use the request origin to ensure the cookie set corresponds to the domain the user is on.
-    // If we redirect to a different domain, the cookie might effectively be lost (cross-domain).
-    // So sticking to `origin` is technically correct for Auth flow stability.
-    // But let's log it clearly.
-    const baseUrl = origin; // Keep origin to match cookie domain context
+    // Derive the true origin from headers, NOT request.url.
+    // On Netlify, request.url reflects the internal mutable deployment URL
+    // (e.g. main--savemyportal.netlify.app), not the custom domain.
+    // The real host comes from x-forwarded-host or host headers.
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const host = forwardedHost || request.headers.get('host') || url.host
+    const protocol = request.headers.get('x-forwarded-proto') || 'https'
+    const origin = `${protocol}://${host}`
 
-    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}, origin: ${origin}`);
+    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}, origin: ${origin}, request.url origin: ${url.origin}`);
 
     if (code) {
         const cookieStore = cookies()

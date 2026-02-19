@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import SourceCard from '@/components/dashboard/SourceCard';
@@ -8,33 +8,10 @@ import FeedCard from '@/components/dashboard/FeedCard';
 import FeedEditor from '@/components/dashboard/FeedEditor';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFeeds, useCreateFeed, useDeleteFeed } from '@/hooks/useFeeds';
-import { useCreateSource, useDeleteSource, useUpdateSource } from '@/hooks/useSources';
-
-import { Database } from '@/lib/database.types';
-
-type FeedRow = Database['public']['Tables']['feeds']['Row'];
-type SourceRow = Database['public']['Tables']['sources']['Row'];
-
-interface FeedConfig {
-    interval: number;
-    transition: string;
-    fit: string;
-    show_clock: boolean;
-    show_weather: boolean;
-    sleep_schedule?: {
-        enabled: boolean;
-        start: string;
-        end: string;
-    };
-}
-
-interface Feed extends Omit<FeedRow, 'config'> {
-    config?: FeedConfig;
-}
-
-type Source = SourceRow;
+import { useAllSources, useDeleteSource } from '@/hooks/useSources';
+import type { Feed } from '@/types/feed';
 
 interface Message {
     type: 'success' | 'error' | 'info';
@@ -46,48 +23,30 @@ export default function Dashboard() {
     const [newUrl, setNewUrl] = useState('');
     const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
     const [message, setMessage] = useState<Message | null>(null);
+    const [showNewFeedInput, setShowNewFeedInput] = useState(false);
+    const [newFeedName, setNewFeedName] = useState('');
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    // Redirect if not logged in
-    if (!authLoading && !user) {
-        router.push('/onboarding');
-    }
+    // Redirect if not logged in (in useEffect to avoid render-time side effects)
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push('/onboarding');
+        }
+    }, [authLoading, user, router]);
 
-    // --- Queries ---
+    const { data: sources = [] } = useAllSources(user?.id);
 
-    const { data: sources = [], isLoading: loadingSources } = useQuery({ // Keeping raw useQuery for all sources for now or create useAllSources?
-        // Let's stick to the generated useSources which takes a feedId.
-        // I should probably make a new hook `useAllSources` or just use raw useQuery here as it was.
-        // The implementation in FeedEditor used raw useQuery too.
-        queryKey: ['sources'],
-        queryFn: async () => {
-            const { data, error } = await supabase.from('sources').select('*').order('created_at', { ascending: false });
-            if (error) throw error;
-            return data as Source[];
-        },
-        enabled: !!user,
-    });
-
-    // Use customized hooks for Feeds
     const { data: feeds = [], isLoading: loadingFeeds } = useFeeds(user?.id);
 
-    // --- Mutations ---
     const createFeedMutation = useCreateFeed();
     const deleteFeedMutation = useDeleteFeed();
-    const createSourceMutation = useCreateSource();
     const deleteSourceMutation = useDeleteSource();
-    const updateSourceMutation = useUpdateSource(); // If needed
 
     const addSourceMutation = useMutation({
         mutationFn: async (url: string) => {
             const type = identifySourceType(url);
             if (!type) throw new Error('Invalid URL');
-
-            // 1. Insert Source
-            // Use custom hook logic? The custom hook `useCreateSource` just inserts.
-            // This component has extra logic (Server Function Invoke).
-            // So we'll keep this custom mutation here, but maybe leverage cache keys from hooks file if exported.
 
             const { data: source, error } = await supabase
                 .from('sources')
@@ -96,7 +55,6 @@ export default function Dashboard() {
                 .single();
             if (error) throw error;
 
-            // 2. Trigger Scrape
             const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
                 body: { sourceId: source.id }
             });
@@ -145,23 +103,24 @@ export default function Dashboard() {
     };
 
     const handleCreateFeed = async () => {
-        const name = prompt("Enter a name for your new feed (e.g., 'Living Room'):");
-        if (!name || !user?.id) return;
+        if (!newFeedName.trim() || !user?.id) return;
 
         try {
             await createFeedMutation.mutateAsync({
                 user_id: user.id,
-                name: name,
+                name: newFeedName.trim(),
                 config: {
                     interval: 10,
                     transition: 'fade',
                     fit: 'cover',
+                    shuffle: true,
                     show_clock: true,
-                    show_weather: false
-                } as any // Config JSON compatibility
+                }
             });
+            setNewFeedName('');
+            setShowNewFeedInput(false);
         } catch (error: any) {
-            alert('Error creating feed: ' + error.message);
+            setMessage({ type: 'error', text: 'Error creating feed: ' + error.message });
         }
     };
 
@@ -195,15 +154,45 @@ export default function Dashboard() {
             <section className="mb-16">
                 <div className="flex justify-between items-end mb-6">
                     <h2 className="text-3xl font-bold text-white">My Feeds</h2>
-                    {feeds.length > 0 && (
+                    {feeds.length > 0 && !showNewFeedInput && (
                         <button
-                            onClick={handleCreateFeed}
+                            onClick={() => setShowNewFeedInput(true)}
                             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
                         >
                             <span>+</span> New Feed
                         </button>
                     )}
                 </div>
+
+                {/* Inline New Feed Input */}
+                {showNewFeedInput && (
+                    <div className="glass-card p-6 mb-6 border border-electric-blue/30 flex flex-col sm:flex-row gap-4">
+                        <input
+                            type="text"
+                            placeholder="Feed name (e.g. 'Living Room')"
+                            className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
+                            value={newFeedName}
+                            onChange={(e) => setNewFeedName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreateFeed()}
+                            autoFocus
+                        />
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleCreateFeed}
+                                disabled={!newFeedName.trim() || createFeedMutation.isPending}
+                                className="px-6 py-3 bg-electric-blue hover:bg-blue-600 text-white rounded-xl font-bold transition-all disabled:opacity-50"
+                            >
+                                {createFeedMutation.isPending ? 'Creating...' : 'Create'}
+                            </button>
+                            <button
+                                onClick={() => { setShowNewFeedInput(false); setNewFeedName(''); }}
+                                className="px-4 py-3 text-gray-400 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
 
                 {loadingFeeds ? (
                     <div className="text-center py-12 text-gray-500">Loading feeds...</div>
@@ -212,7 +201,7 @@ export default function Dashboard() {
                         <h3 className="text-xl font-bold text-white mb-2">No Feeds Configured</h3>
                         <p className="text-gray-400 mb-6">Create a feed to start displaying your photos.</p>
                         <button
-                            onClick={handleCreateFeed}
+                            onClick={() => setShowNewFeedInput(true)}
                             className="px-8 py-3 bg-electric-blue text-white rounded-full font-bold hover:shadow-lg transition-all"
                         >
                             Create First Feed

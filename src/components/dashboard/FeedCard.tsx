@@ -1,23 +1,7 @@
 "use client";
 
 import { MouseEventHandler } from 'react';
-// import { supabase } from '@/lib/supabase'; // Unused in original file
-
-import { Database } from '@/lib/database.types';
-
-type FeedRow = Database['public']['Tables']['feeds']['Row'];
-
-interface FeedConfig {
-    interval?: number;
-    transition?: string;
-    fit?: string;
-    show_clock?: boolean;
-    show_weather?: boolean;
-}
-
-interface Feed extends Omit<FeedRow, 'config'> {
-    config?: FeedConfig;
-}
+import type { Feed } from '@/types/feed';
 
 interface FeedCardProps {
     feed: Feed;
@@ -32,8 +16,8 @@ export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
     const interval = config.interval || 10;
     const transition = config.transition || 'fade';
     const fit = config.fit || 'cover';
+    const shuffleEnabled = config.shuffle !== false;
     const showClock = config.show_clock || false;
-    const showWeather = config.show_weather || false;
 
     return (
         <div className="glass-card p-6 relative group border border-white/10 hover:border-electric-blue/50 transition-colors">
@@ -72,10 +56,10 @@ export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
 
             <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-400">
                 <div className="flex items-center gap-2">
-                    <span className={showClock ? 'text-green-400' : 'text-gray-600'}>●</span> Clock
+                    <span className={shuffleEnabled ? 'text-green-400' : 'text-gray-600'}>●</span> Shuffle
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className={showWeather ? 'text-green-400' : 'text-gray-600'}>●</span> Weather
+                    <span className={showClock ? 'text-green-400' : 'text-gray-600'}>●</span> Clock
                 </div>
             </div>
         </div>
