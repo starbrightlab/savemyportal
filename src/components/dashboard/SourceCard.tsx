@@ -45,7 +45,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                             {source.name || (source.type === 'google_photos' ? 'Google Photos' : 'iCloud Album')}
                             <span className="text-xs font-normal text-gray-500 ml-2">#{source.id.slice(0, 4)}</span>
                         </h3>
-                        <a className="text-xs text-electric-blue truncate max-w-[200px]" href={source.url}>
+                        <a className="text-xs text-electric-blue truncate max-w-[200px]" href={source.url} target="_blank" rel="noopener noreferrer">
                             View Album
                         </a>
                     </div>
@@ -58,7 +58,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                 </div>
             </div>
 
-            <div className="text-xs text-gray-400" style="text-align: right;">
+            <div className="text-xs text-gray-400" style={{ textAlign: "right" }}>
                 <p>Last Sync: {source.last_scraped_at ? new Date(source.last_scraped_at).toLocaleTimeString() : 'Never'}</p>
                 {source.error_message && (
                     <p className="text-red-400 text-xs">Error: {source.error_message}</p>
