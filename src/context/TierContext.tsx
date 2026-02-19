@@ -32,7 +32,7 @@ export const TierProvider = ({ children }: TierProviderProps) => {
     const [tier, setTier] = useState<TierName>('free');
     const [loading, setLoading] = useState(true);
 
-    const fetchTier = useCallback(async () => {
+    const fetchTier = useCallback(async (retries = 2) => {
         if (!user) {
             setTier('free');
             setLoading(false);
@@ -47,8 +47,12 @@ export const TierProvider = ({ children }: TierProviderProps) => {
                 .single();
 
             if (error) {
-                // Profile might not exist yet (trigger hasn't fired, or race condition)
-                // Default to free — safe fallback
+                // Profile might not exist yet (trigger hasn't fired, or race condition).
+                // Retry briefly before defaulting to free.
+                if (retries > 0) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    return fetchTier(retries - 1);
+                }
                 console.warn('Could not fetch user profile, defaulting to free tier:', error.message);
                 setTier('free');
             } else {

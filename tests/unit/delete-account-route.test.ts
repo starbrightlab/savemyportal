@@ -20,6 +20,10 @@ vi.mock('@supabase/supabase-js', () => ({
     })),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+    checkRateLimit: vi.fn(() => ({ allowed: true, remaining: 0, resetAt: Date.now() + 60000 })),
+}));
+
 // Import the route handler AFTER mocks are set up
 import { POST } from '../../src/app/api/delete-account/route';
 

@@ -514,7 +514,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 {/* Blurred Background Layer — use the thumbnail/image URL */}
                 <div
                     className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
-                    style={{ backgroundImage: `url(${photo.url})` }}
+                    style={{ backgroundImage: `url("${photo.url.replace(/["\\]/g, '\\$&')}")` }}
                 />
 
                 {isVideo ? (

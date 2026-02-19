@@ -16,15 +16,33 @@ vi.mock('@/lib/supabase/server', () => ({
     })),
 }));
 
-// Mock the service client (used for status updates)
+// Mock the service client (used for status updates + tier lookup)
+const mockProfileSingle = vi.fn().mockResolvedValue({ data: { tier: 'pro' }, error: null });
 vi.mock('@supabase/supabase-js', () => ({
     createClient: vi.fn(() => ({
-        from: vi.fn(() => ({
-            update: vi.fn(() => ({
-                eq: vi.fn(() => ({ then: vi.fn() })),
-            })),
-        })),
+        from: vi.fn((table: string) => {
+            if (table === 'user_profiles') {
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            single: mockProfileSingle,
+                        })),
+                    })),
+                };
+            }
+            return {
+                update: vi.fn(() => ({
+                    eq: vi.fn(() => ({
+                        then: vi.fn(() => ({ catch: vi.fn() })),
+                    })),
+                })),
+            };
+        }),
     })),
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+    checkRateLimit: vi.fn(() => ({ allowed: true, remaining: 4, resetAt: Date.now() + 60000 })),
 }));
 
 // Mock scrapers

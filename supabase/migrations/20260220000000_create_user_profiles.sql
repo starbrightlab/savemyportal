@@ -100,7 +100,7 @@ begin
         where user_profiles.user_id = new.user_id
         and user_profiles.tier = 'free'
     ) then
-        new.config = '{"interval":10,"transition":"crossfade","fit":"cover","shuffle":true,"show_clock":true}'::jsonb;
+        new.config = '{"interval":30,"transition":"crossfade","fit":"cover","shuffle":true,"show_clock":true}'::jsonb;
     end if;
     return new;
 end;

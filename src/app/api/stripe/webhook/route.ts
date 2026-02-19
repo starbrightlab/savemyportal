@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
         // Update user profile to Pro
         const serviceClient = createServiceClient<Database>(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPERBASE_SERVICE_ROLE_KEY!
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
         // Upsert instead of update — creates the row if the signup trigger
@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`User ${userId} upgraded to Pro via Stripe session ${session.id}`);
+    } else {
+        console.log(`Webhook: unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
