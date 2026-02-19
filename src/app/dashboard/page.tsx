@@ -19,9 +19,9 @@ interface Message {
 }
 
 const DONATE_TIERS = [
-    { amount: '$5', label: 'Coffee', url: 'https://buy.stripe.com/PLACEHOLDER_5' },
-    { amount: '$10', label: 'Server Month', url: 'https://buy.stripe.com/PLACEHOLDER_10', highlighted: true },
-    { amount: '$25', label: 'Champion', url: 'https://buy.stripe.com/PLACEHOLDER_25' },
+    { amount: '$5', label: 'Coffee', url: 'https://buy.stripe.com/4gM14mgK081l4LYeUbenS02' },
+    { amount: '$10', label: 'Server Month', url: 'https://buy.stripe.com/5kQ4gy8du3L50vI4fxenS01', highlighted: true },
+    { amount: '$25', label: 'Champion', url: 'https://buy.stripe.com/00w28qeBS6XhemycM3enS00' },
 ];
 
 export default function Dashboard() {
@@ -37,7 +37,6 @@ export default function Dashboard() {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    // Redirect if not logged in (in useEffect to avoid render-time side effects)
     useEffect(() => {
         if (!authLoading && !user) {
             router.push('/onboarding');
@@ -45,10 +44,8 @@ export default function Dashboard() {
     }, [authLoading, user, router]);
 
     const { data: sources = [] } = useAllSources(user?.id);
-
     const { data: feeds = [], isLoading: loadingFeeds } = useFeeds(user?.id);
 
-    // Get per-feed source counts for empty feed nudge
     const { data: feedSourceCounts = {} } = useQuery({
         queryKey: ['feed-source-counts', user?.id],
         queryFn: async () => {
@@ -138,7 +135,7 @@ export default function Dashboard() {
                 name: newFeedName.trim(),
                 config: {
                     interval: 10,
-                    transition: 'fade',
+                    transition: 'crossfade',
                     fit: 'cover',
                     shuffle: true,
                     show_clock: true,
@@ -158,7 +155,6 @@ export default function Dashboard() {
             return;
         }
 
-        // Second tap — actually delete
         if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
         setDeleting(true);
 
@@ -185,201 +181,222 @@ export default function Dashboard() {
     if (authLoading || !user) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading Settings...</div>;
 
     return (
-        <div className="min-h-screen pt-4 px-6 max-w-7xl mx-auto pb-20 overflow-y-auto">
+        <div className="min-h-screen pb-24">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
-                <div>
-                    <div className="flex items-center gap-4 mb-2">
-                        <img src="/savemyportal-logo-white.svg" alt="Logo" className="w-12 h-12" />
-                        <h1 className="text-4xl md:text-4xl font-bold font-display text-white">Settings</h1>
+            <div className="sticky top-0 z-30 border-b border-white/5" style={{ background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
+                <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <img src="/savemyportal-logo-white.svg" alt="Logo" className="w-8 h-8" />
+                        <h1 className="text-xl font-bold font-display text-white">Settings</h1>
                     </div>
-                </div>
-
-                <div className="flex gap-4 mb-2">
-                    <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
-                        Back
+                    <Link
+                        href="/"
+                        className="px-5 py-2 text-sm font-medium text-white/70 hover:text-white border border-white/15 hover:border-white/30 rounded-full transition-all"
+                        style={{ background: 'rgba(255,255,255,0.05)' }}
+                    >
+                        Back to Frame
                     </Link>
                 </div>
             </div>
 
-            {/* My Feeds Section */}
-            <section className="mb-6">
-                <div className="flex justify-between items-end mb-3">
-                    <h2 className="text-xl font-bold text-white">My Feeds</h2>
-                    {feeds.length > 0 && !showNewFeedInput && (
-                        <button
-                            onClick={() => setShowNewFeedInput(true)}
-                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
-                        >
-                            <span>+</span> New Feed
-                        </button>
-                    )}
-                </div>
+            <div className="max-w-5xl mx-auto px-6 pt-8 space-y-10">
 
-                {/* Inline New Feed Input */}
-                {showNewFeedInput && (
-                    <div className="glass-card p-2 mb-4 border border-electric-blue/30 flex flex-col sm:flex-row gap-4">
-                        <input
-                            type="text"
-                            placeholder="Feed name (e.g. 'Living Room')"
-                            className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
-                            value={newFeedName}
-                            onChange={(e) => setNewFeedName(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleCreateFeed()}
-                            autoFocus
-                        />
-                        <div className="flex gap-2">
+                {/* ─── Feeds ─── */}
+                <section>
+                    <div className="flex justify-between items-center mb-4">
+                        <div>
+                            <h2 className="text-lg font-bold text-white">Feeds</h2>
+                            <p className="text-sm text-gray-500 mt-0.5">Each feed is a collection of photo sources with its own display settings.</p>
+                        </div>
+                        {feeds.length > 0 && !showNewFeedInput && (
                             <button
-                                onClick={handleCreateFeed}
-                                disabled={!newFeedName.trim() || createFeedMutation.isPending}
-                                className="px-6 py-3 bg-electric-blue hover:bg-blue-600 text-white rounded-xl font-bold transition-all disabled:opacity-50"
+                                onClick={() => setShowNewFeedInput(true)}
+                                className="px-4 py-2 text-sm font-semibold text-electric-blue border border-electric-blue/25 hover:border-electric-blue/50 hover:bg-electric-blue/5 rounded-lg transition-all flex items-center gap-1.5"
                             >
-                                {createFeedMutation.isPending ? 'Creating...' : 'Create'}
+                                <span className="text-lg leading-none">+</span> New Feed
                             </button>
+                        )}
+                    </div>
+
+                    {showNewFeedInput && (
+                        <div className="flex flex-col sm:flex-row gap-3 mb-5 p-4 rounded-xl border border-electric-blue/20 bg-electric-blue/5">
+                            <input
+                                type="text"
+                                placeholder="Feed name (e.g. Living Room)"
+                                className="flex-1 bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
+                                value={newFeedName}
+                                onChange={(e) => setNewFeedName(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleCreateFeed()}
+                                autoFocus
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleCreateFeed}
+                                    disabled={!newFeedName.trim() || createFeedMutation.isPending}
+                                    className="px-5 py-2.5 bg-electric-blue hover:bg-blue-600 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-50"
+                                >
+                                    {createFeedMutation.isPending ? 'Creating...' : 'Create'}
+                                </button>
+                                <button
+                                    onClick={() => { setShowNewFeedInput(false); setNewFeedName(''); }}
+                                    className="px-3 py-2.5 text-sm text-gray-400 hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {loadingFeeds ? (
+                        <div className="text-center py-12 text-gray-500 text-sm">Loading feeds...</div>
+                    ) : feeds.length === 0 ? (
+                        <div className="text-center py-14 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                            <h3 className="text-lg font-semibold text-white mb-1">No feeds yet</h3>
+                            <p className="text-sm text-gray-500 mb-5">Create a feed to start displaying your photos.</p>
                             <button
-                                onClick={() => { setShowNewFeedInput(false); setNewFeedName(''); }}
-                                className="px-4 py-3 text-gray-400 hover:text-white transition-colors"
+                                onClick={() => setShowNewFeedInput(true)}
+                                className="px-6 py-2.5 bg-electric-blue text-white rounded-lg text-sm font-bold hover:bg-blue-600 transition-all"
                             >
-                                Cancel
+                                Create First Feed
                             </button>
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {feeds.map(feed => (
+                                <FeedCard
+                                    key={feed.id}
+                                    feed={feed}
+                                    sourceCount={feedSourceCounts[feed.id] ?? 0}
+                                    onDelete={() => feed.id && deleteFeedMutation.mutate(feed.id)}
+                                    onEdit={() => setEditingFeed(feed)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
 
-                {loadingFeeds ? (
-                    <div className="text-center py-12 text-gray-500">Loading feeds...</div>
-                ) : feeds.length === 0 ? (
-                    <div className="text-center py-16 border border-dashed border-white/10 rounded-3xl bg-white/5">
-                        <h3 className="text-xl font-bold text-white mb-2">No Feeds Configured</h3>
-                        <p className="text-gray-400 mb-6">Create a feed to start displaying your photos.</p>
+                {/* ─── Sources ─── */}
+                <section>
+                    <div className="mb-4">
+                        <h2 className="text-lg font-bold text-white">Sources</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">Connected photo albums. Add a source, then assign it to one or more feeds.</p>
+                    </div>
+
+                    {/* Add Source Input */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                        <input
+                            type="text"
+                            placeholder="Paste a Google Photos or iCloud shared album link..."
+                            className="flex-1 bg-white/[0.03] border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
+                            value={newUrl}
+                            onChange={(e) => setNewUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
+                        />
                         <button
-                            onClick={() => setShowNewFeedInput(true)}
-                            className="px-8 py-3 bg-electric-blue text-white rounded-full font-bold hover:shadow-lg transition-all"
+                            onClick={handleAddSource}
+                            disabled={addSourceMutation.isPending || !newUrl}
+                            className="px-5 py-2.5 bg-white/[0.06] hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40"
                         >
-                            Create First Feed
+                            {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
                         </button>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {feeds.map(feed => (
-                            <FeedCard
-                                key={feed.id}
-                                feed={feed}
-                                sourceCount={feedSourceCounts[feed.id] ?? 0}
-                                onDelete={() => feed.id && deleteFeedMutation.mutate(feed.id)}
-                                onEdit={() => setEditingFeed(feed)}
-                            />
-                        ))}
-                    </div>
-                )}
-            </section>
 
-            {/* Sources Section */}
-            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
-                <h2 className="text-xl font-bold mb-3 text-gray-300">Sources</h2>
-
-                {/* Add Source Input */}
-                <div className="glass-card p-2 mb-4 border border-white/10 flex flex-col md:flex-row gap-4">
-                    <input
-                        type="text"
-                        placeholder="Paste Google Photos or iCloud Shared Album Link..."
-                        className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600 text-sm"
-                        value={newUrl}
-                        onChange={(e) => setNewUrl(e.target.value)}
-                    />
-                    <button
-                        onClick={handleAddSource}
-                        disabled={addSourceMutation.isPending || !newUrl}
-                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
-                    >
-                        {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
-                    </button>
-                </div>
-                {message && (
-                    <div className={`mb-4 text-sm font-medium ${message.type === 'error' ? 'text-red-400' :
-                        message.type === 'success' ? 'text-green-400' : 'text-blue-400'
+                    {message && (
+                        <div className={`mb-4 text-sm font-medium px-4 py-2.5 rounded-lg ${
+                            message.type === 'error' ? 'text-red-400 bg-red-500/10 border border-red-500/20' :
+                            message.type === 'success' ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
+                            'text-blue-400 bg-blue-500/10 border border-blue-500/20'
                         }`}>
-                        {message.text}
-                    </div>
-                )}
+                            {message.text}
+                        </div>
+                    )}
 
-                {sources.length === 0 ? (
-                    <div className="text-center py-8 text-sm text-gray-500 border border-dashed border-white/10 rounded-xl">
-                        No sources connected.
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {sources.map(source => (
-                            <SourceCard
-                                key={source.id}
-                                source={source}
-                                onSync={() => syncSourceMutation.mutateAsync(source.id)}
-                                onDelete={() => deleteSourceMutation.mutate(source.id)}
-                            />
+                    {sources.length === 0 ? (
+                        <div className="text-center py-10 text-sm text-gray-500 border border-dashed border-white/10 rounded-xl bg-white/[0.02]">
+                            No sources connected yet.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sources.map(source => (
+                                <SourceCard
+                                    key={source.id}
+                                    source={source}
+                                    onSync={() => syncSourceMutation.mutateAsync(source.id)}
+                                    onDelete={() => deleteSourceMutation.mutate(source.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                {/* ─── Divider ─── */}
+                <div className="border-t border-white/5" />
+
+                {/* ─── Support ─── */}
+                <section>
+                    <h2 className="text-lg font-bold text-white mb-1">Support SaveMyPortal</h2>
+                    <p className="text-sm text-gray-500 mb-4">Help keep the project free and actively developed.</p>
+                    <div className="flex flex-wrap gap-3">
+                        {DONATE_TIERS.map((tier) => (
+                            <a
+                                key={tier.amount}
+                                href={tier.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.03] ${
+                                    tier.highlighted
+                                        ? 'border border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
+                                        : 'border border-white/10 bg-white/[0.03] text-gray-300 hover:border-soft-gold/30 hover:text-soft-gold'
+                                }`}
+                            >
+                                <span className="font-bold">{tier.amount}</span>
+                                <span className="text-xs opacity-60">{tier.label}</span>
+                            </a>
                         ))}
                     </div>
-                )}
-            </section>
+                </section>
 
-            {/* Support Section */}
-            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
-                <h2 className="text-xl font-bold mb-3 text-gray-300">Support SaveMyPortal</h2>
-                <p className="text-sm text-gray-500 mb-4">Help keep SaveMyPortal free and actively developed.</p>
-                <div className="flex flex-wrap gap-3">
-                    {DONATE_TIERS.map((tier) => (
-                        <a
-                            key={tier.amount}
-                            href={tier.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all hover:scale-105 ${
-                                tier.highlighted
-                                    ? 'border border-soft-gold/50 bg-soft-gold/10 text-soft-gold'
-                                    : 'border border-white/10 bg-white/5 text-gray-300 hover:border-soft-gold/30 hover:text-soft-gold'
+                {/* ─── Account ─── */}
+                <section className="rounded-xl border border-white/5 bg-white/[0.02] p-6 space-y-6">
+                    <div>
+                        <h2 className="text-lg font-bold text-white mb-1">Account</h2>
+                        <p className="text-sm text-gray-500">Signed in as {user.email}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                        <div>
+                            <p className="text-sm font-medium text-gray-300">Sign out</p>
+                            <p className="text-xs text-gray-600">You can sign back in anytime.</p>
+                        </div>
+                        <button
+                            onClick={() => supabase.auth.signOut()}
+                            className="px-5 py-2 text-sm font-medium text-gray-400 hover:text-white border border-white/10 hover:border-white/20 rounded-lg transition-all"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-red-500/10">
+                        <div>
+                            <p className="text-sm font-medium text-red-400">Delete account</p>
+                            <p className="text-xs text-gray-600">Permanently removes all data. This cannot be undone.</p>
+                        </div>
+                        <button
+                            onClick={handleDeleteAccount}
+                            disabled={deleting}
+                            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${
+                                deleting
+                                    ? 'bg-red-500/10 text-red-300 opacity-50 cursor-not-allowed'
+                                    : confirmingDelete
+                                        ? 'bg-red-500/20 text-red-200 border border-red-500/40 animate-pulse'
+                                        : 'text-red-400 border border-red-500/15 hover:border-red-500/30 hover:bg-red-500/5'
                             }`}
                         >
-                            <span className="font-bold">{tier.amount}</span>
-                            <span className="text-xs opacity-70">{tier.label}</span>
-                        </a>
-                    ))}
-                </div>
-            </section>
-
-            {/* Account Section */}
-            <section className="opacity-80 hover:opacity-100 transition-opacity mb-6">
-                <h2 className="text-xl font-bold mb-3 text-gray-300">Account</h2>
-                <div className="flex gap-4 mb-2">
-                    <button
-                        onClick={() => supabase.auth.signOut()}
-                        className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-gray-400 hover:text-white"
-                    >
-                        Sign Out
-                    </button>
-                </div>
-            </section>
-
-            {/* Danger Zone */}
-            <section className="mb-8">
-                <div className="border border-red-500/20 rounded-xl bg-red-500/5 p-6">
-                    <h2 className="text-lg font-bold text-red-400 mb-2">Danger Zone</h2>
-                    <p className="text-sm text-gray-500 mb-4">
-                        Permanently delete your account and all associated data. This cannot be undone.
-                    </p>
-                    <button
-                        onClick={handleDeleteAccount}
-                        disabled={deleting}
-                        className={`px-6 py-3 rounded-full text-sm font-semibold transition-all ${
-                            deleting
-                                ? 'bg-red-500/20 text-red-300 opacity-50 cursor-not-allowed'
-                                : confirmingDelete
-                                    ? 'bg-red-500/30 text-red-200 border border-red-500/50 animate-pulse'
-                                    : 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20'
-                        }`}
-                    >
-                        {deleting ? 'Deleting...' : confirmingDelete ? 'Tap Again to Confirm' : 'Delete Account'}
-                    </button>
-                </div>
-            </section>
+                            {deleting ? 'Deleting...' : confirmingDelete ? 'Tap Again' : 'Delete'}
+                        </button>
+                    </div>
+                </section>
+            </div>
 
             {/* Editor Modal */}
             {editingFeed && (
