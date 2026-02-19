@@ -24,7 +24,7 @@ export default function FeedCard({ feed, sourceCount, onDelete, onEdit }: FeedCa
         <div className="glass-card p-6 relative group border border-white/10 hover:border-electric-blue/50 transition-colors">
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
-                    <span className="text-3xl">📺</span>
+                    {/*<span className="text-3xl"></span>*/}
                     <div>
                         <h3 className="font-bold text-white text-xl">{feed.name}</h3>
                         <p className="text-xs text-gray-400">
