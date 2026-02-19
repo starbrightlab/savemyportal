@@ -124,10 +124,7 @@ export default function Landing() {
 
                     {!user ? (
                         /* GUEST STATE */
-                        <div className="space-y-6">
-                            <p className="text-white/70 text-lg md:text-xl font-light max-w-md mx-auto">
-                                Turn your old Meta Portal into a beautiful digital photo frame.
-                            </p>
+                        <div className="flex flex-col items-center gap-8">
                             <Link
                                 href="/onboarding"
                                 className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl"
@@ -135,6 +132,9 @@ export default function Landing() {
                             >
                                 Get Started
                             </Link>
+                            <p className="text-white/70 text-lg md:text-xl font-light max-w-md mx-auto">
+                                Transform your device into a beautiful digital photo frame.
+                            </p>
                         </div>
                     ) : (
                         /* LOGGED IN STATE */
