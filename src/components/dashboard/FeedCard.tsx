@@ -53,15 +53,6 @@ export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
                     </button>
                 </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-2 mt-4 text-sm text-gray-400">
-                <div className="flex items-center gap-2">
-                    <span className={shuffleEnabled ? 'text-green-400' : 'text-gray-600'}>●</span> Shuffle
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className={showClock ? 'text-green-400' : 'text-gray-600'}>●</span> Clock
-                </div>
-            </div>
         </div>
     );
 }
