@@ -35,5 +35,5 @@ Because we are targeting a specific, older browser version (early 2022), you mus
 
 1.  **Install**: `npm install`
 2.  **Start**: `npm run dev`
-3.  **Test**: Open `http://localhost:5173` in your browser.
+3.  **Test**: Open `http://localhost:3000` in your browser.
 4.  **Verify**: If possible, deploy to a preview URL and test on an actual Portal device. The simulator cannot replicate the Power Management logic.

@@ -100,8 +100,6 @@ export default function Landing() {
             onClick={handleInteraction}
         >
             <WakeLock ref={wakeLockRef} />
-            <h1 className="sr-only">SaveMyPortal – Turn your Meta Portal into a digital photo frame</h1>
-
             {/* Background Layer: The Slideshow */}
             <div className="absolute inset-0 z-0">
                 <FrameErrorBoundary>
@@ -115,12 +113,20 @@ export default function Landing() {
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
-                    <div className="flex justify-center mb-8">
-                        <img
-                            src="/savemyportal-logo-white.svg"
-                            alt="SaveMyPortal Logo"
-                            className="w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-pulse-slow"
-                        />
+                    <div className="text-center space-y-4 mb-8">
+                        <div className="flex justify-center">
+                            <img
+                                src="/savemyportal-logo-white.svg"
+                                alt="SaveMyPortal Logo"
+                                className="w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-pulse-slow"
+                            />
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-bold font-outfit tracking-tight">
+                            SaveMyPortal
+                        </h1>
+                        <p className="text-white/50 text-sm md:text-base font-light">
+                            Turn your Meta Portal into a digital photo frame
+                        </p>
                     </div>
 
                     {!user ? (
