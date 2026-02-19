@@ -1,17 +1,17 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/stripe/webhook/route": "app/api/stripe/webhook/route.js",
   "/api/stripe/create-checkout/route": "app/api/stripe/create-checkout/route.js",
-  "/api/scrape-urls/route": "app/api/scrape-urls/route.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/api/stripe/price/route": "app/api/stripe/price/route.js",
-  "/auth/callback/route": "app/auth/callback/route.js",
-  "/api/delete-account/route": "app/api/delete-account/route.js",
-  "/page": "app/page.js",
+  "/api/scrape-urls/route": "app/api/scrape-urls/route.js",
+  "/onboarding/page": "app/onboarding/page.js",
+  "/api/stripe/webhook/route": "app/api/stripe/webhook/route.js",
   "/upgrade/page": "app/upgrade/page.js",
-  "/donate/page": "app/donate/page.js",
-  "/terms/page": "app/terms/page.js",
+  "/page": "app/page.js",
+  "/api/delete-account/route": "app/api/delete-account/route.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
   "/mission/page": "app/mission/page.js",
   "/privacy/page": "app/privacy/page.js",
-  "/onboarding/page": "app/onboarding/page.js"
+  "/donate/page": "app/donate/page.js",
+  "/terms/page": "app/terms/page.js"
 }

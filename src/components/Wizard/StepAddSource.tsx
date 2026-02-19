@@ -191,7 +191,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
                     disabled={!url.trim() || isSubmitting}
                     className="w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-xl font-semibold text-lg transition-all shadow-lg hover:shadow-blue-500/20"
                 >
-                    {isSubmitting ? 'Adding...' : 'Add Source & Finish'}
+                    {isSubmitting ? 'Adding...' : 'Add Source'}
                 </button>
             </form>
 

@@ -19,6 +19,16 @@ function getStripe() {
 export async function POST(request: NextRequest) {
     try {
         const stripe = getStripe();
+
+        // 0. Parse optional promo code from request body
+        let promoCode: string | undefined;
+        try {
+            const body = await request.json();
+            promoCode = body?.promoCode;
+        } catch {
+            // No body or invalid JSON — that's fine, proceed without promo code
+        }
+
         // 1. Authenticate via cookies
         const supabase = await createClient();
         const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -60,8 +70,20 @@ export async function POST(request: NextRequest) {
             cancel_url: `${origin}/dashboard`,
         };
 
-        // Apply launch coupon if configured
-        if (process.env.STRIPE_LAUNCH_COUPON_ID) {
+        // Apply discount: custom promo code takes priority, otherwise auto-apply launch coupon
+        if (promoCode) {
+            // Look up the promotion code to get its Stripe ID
+            const promoCodes = await stripe.promotionCodes.list({
+                code: promoCode,
+                active: true,
+                limit: 1,
+            });
+            if (promoCodes.data.length > 0) {
+                sessionParams.discounts = [{ promotion_code: promoCodes.data[0].id }];
+            } else {
+                return NextResponse.json({ error: 'Invalid or expired promo code' }, { status: 400 });
+            }
+        } else if (process.env.STRIPE_LAUNCH_COUPON_ID) {
             sessionParams.discounts = [{ coupon: process.env.STRIPE_LAUNCH_COUPON_ID }];
         }
 

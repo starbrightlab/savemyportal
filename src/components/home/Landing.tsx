@@ -124,9 +124,6 @@ export default function Landing() {
                         <h1 className="text-4xl md:text-5xl font-light font-outfit tracking-tight">
                             SaveMyPortal
                         </h1>
-                        <p className="text-white/50 text-sm md:text-base font-light">
-                            Transform your device into a beautiful digital photo frame.
-                        </p>
                     </div>
 
                     {!user ? (
