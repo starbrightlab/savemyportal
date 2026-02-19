@@ -8,6 +8,8 @@ interface Photo {
     id: string;
     source_id: string;
     url: string;
+    media_type: 'image' | 'video';
+    video_url?: string | null;
     credit?: {
         name: string;
         username: string;
@@ -18,21 +20,21 @@ interface Photo {
 // Displayed when no user is signed in, no photos are available, or on fetch error.
 // Credit metadata per Unsplash attribution guidelines.
 const FALLBACK_PHOTOS: Photo[] = [
-    { id: 'fb-1', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&q=80', credit: { name: 'Bailey Zindel', username: 'baileyzindel' } },
-    { id: 'fb-2', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80', credit: { name: 'Urban Vintage', username: 'urban_vintage' } },
-    { id: 'fb-3', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80', credit: { name: 'Tim Swaan', username: 'timswaanphotography' } },
-    { id: 'fb-4', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80', credit: { name: 'Robert Lukeman', username: 'robertlukeman' } },
-    { id: 'fb-5', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
-    { id: 'fb-6', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80', credit: { name: 'Pietro De Grandi', username: 'peter_mc_greats' } },
-    { id: 'fb-7', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80', credit: { name: 'v2osk', username: 'v2osk' } },
-    { id: 'fb-8', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1771387925581-cb0e1d64f506?w=1920&q=80', credit: { name: 'Daniel Akselrod', username: 'daniel_akserlod' } },
-    { id: 'fb-9', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1414609245224-afa02bfb3fda?w=1920&q=80', credit: { name: 'Rachel Cook', username: 'grafixgurl247' } },
-    { id: 'fb-10', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80', credit: { name: 'Ivana Cajina', username: 'von_co' } },
-    { id: 'fb-11', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1563824299647-a84d608d85b8?w=1920&q=80', credit: { name: 'Tim Swaan', username: 'timswaanphotography' } },
-    { id: 'fb-12', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1428452971006-b3dff82e3ca4?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
-    { id: 'fb-13', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1433086994863-5f3136c18a58?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
-    { id: 'fb-14', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1770932536808-bd67e5809870?w=1920&q=80', credit: { name: 'Alexey O', username: 'ao__space' } },
-    { id: 'fb-15', source_id: 'fallback', url: 'https://images.unsplash.com/photo-1770106678115-ec9aa241cdf6?w=1920&q=80', credit: { name: 'Leo_Visions', username: 'leo_visions_' } },
+    { id: 'fb-1', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&q=80', credit: { name: 'Bailey Zindel', username: 'baileyzindel' } },
+    { id: 'fb-2', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80', credit: { name: 'Urban Vintage', username: 'urban_vintage' } },
+    { id: 'fb-3', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&q=80', credit: { name: 'Tim Swaan', username: 'timswaanphotography' } },
+    { id: 'fb-4', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80', credit: { name: 'Robert Lukeman', username: 'robertlukeman' } },
+    { id: 'fb-5', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
+    { id: 'fb-6', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80', credit: { name: 'Pietro De Grandi', username: 'peter_mc_greats' } },
+    { id: 'fb-7', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80', credit: { name: 'v2osk', username: 'v2osk' } },
+    { id: 'fb-8', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1771387925581-cb0e1d64f506?w=1920&q=80', credit: { name: 'Daniel Akselrod', username: 'daniel_akserlod' } },
+    { id: 'fb-9', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1414609245224-afa02bfb3fda?w=1920&q=80', credit: { name: 'Rachel Cook', username: 'grafixgurl247' } },
+    { id: 'fb-10', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80', credit: { name: 'Ivana Cajina', username: 'von_co' } },
+    { id: 'fb-11', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1563824299647-a84d608d85b8?w=1920&q=80', credit: { name: 'Tim Swaan', username: 'timswaanphotography' } },
+    { id: 'fb-12', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1428452971006-b3dff82e3ca4?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
+    { id: 'fb-13', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1433086994863-5f3136c18a58?w=1920&q=80', credit: { name: 'Blake Verdoorn', username: 'lakeverdoorn' } },
+    { id: 'fb-14', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1770932536808-bd67e5809870?w=1920&q=80', credit: { name: 'Alexey O', username: 'ao__space' } },
+    { id: 'fb-15', source_id: 'fallback', media_type: 'image', url: 'https://images.unsplash.com/photo-1770106678115-ec9aa241cdf6?w=1920&q=80', credit: { name: 'Leo_Visions', username: 'leo_visions_' } },
 ];
 
 /** Fisher-Yates shuffle (returns a new array). */
@@ -83,6 +85,10 @@ export default function Slideshow({ feed }: SlideshowProps) {
     // Transition state — track which photo is "entering" vs "on stage"
     const [isTransitioning, setIsTransitioning] = useState(false);
     const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Video playback — when a video is the current item, let it play to completion
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
     // Clock — update every 30 seconds, 12-hour format
     useEffect(() => {
@@ -162,16 +168,22 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
                 if (data && data.length > 0) {
                     const processedPhotos: Photo[] = data.map(item => {
+                        const isVideo = item.media_type === 'video';
                         let finalUrl = item.url;
 
                         if (item.url.includes('googleusercontent.com') && !item.url.includes('=')) {
                             finalUrl = `${item.url}=w1920-h1080`;
                         }
 
+                        // Images go through the proxy/CDN; videos use direct source URLs
+                        const proxyUrl = `${process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`;
+
                         return {
                             id: item.id,
                             source_id: item.source_id,
-                            url: `${process.env.NEXT_PUBLIC_IMAGE_CDN_URL || process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/proxy-image?url=${encodeURIComponent(finalUrl)}`
+                            media_type: (isVideo ? 'video' : 'image') as 'image' | 'video',
+                            url: isVideo ? finalUrl : proxyUrl,
+                            video_url: isVideo ? (item.video_url || finalUrl) : null,
                         };
                     });
 
@@ -192,12 +204,15 @@ export default function Slideshow({ feed }: SlideshowProps) {
         loadPhotos();
     }, [feed, shuffle]);
 
-    // Preload the next image into browser cache
+    // Preload the next item into browser cache (images only — videos stream on demand)
     useEffect(() => {
         if (photos.length <= 1) return;
         const nextIdx = (currentIndex + 1) % photos.length;
-        const img = new Image();
-        img.src = photos[nextIdx].url;
+        const nextItem = photos[nextIdx];
+        if (nextItem.media_type !== 'video') {
+            const img = new Image();
+            img.src = nextItem.url;
+        }
     }, [currentIndex, photos]);
 
     // Transition duration in ms
@@ -229,13 +244,23 @@ export default function Slideshow({ feed }: SlideshowProps) {
         };
     }, []);
 
+    // Reset video state when the current item changes
+    useEffect(() => {
+        const current = photos[currentIndex];
+        if (!current || current.media_type !== 'video') {
+            setIsVideoPlaying(false);
+        }
+    }, [currentIndex, photos]);
+
     useEffect(() => {
         if (photos.length <= 1 || sleeping) return;
+        // When a video is playing, don't auto-advance on timer — the video's onEnded handles it
+        if (isVideoPlaying) return;
 
         const fallbackInterval = usingFallback ? 15000 : intervalTime;
         const timer = setInterval(advance, fallbackInterval);
         return () => clearInterval(timer);
-    }, [photos.length, intervalTime, sleeping, advance, usingFallback]);
+    }, [photos.length, intervalTime, sleeping, advance, usingFallback, isVideoPlaying]);
 
     // Current and next indices / photos
     const nextIdx = photos.length > 1 ? (currentIndex + 1) % photos.length : currentIndex;
@@ -339,44 +364,77 @@ export default function Slideshow({ feed }: SlideshowProps) {
         );
     }
 
-    /** Render a single photo layer (blurred bg + main image). */
-    const renderPhotoLayer = (photo: Photo) => (
-        <>
-            {/* Blurred Background Layer */}
-            <div
-                className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
-                style={{ backgroundImage: `url(${photo.url})` }}
-            />
-            {/* Main Image */}
-            <img
-                src={photo.url}
-                alt="Frame Content"
-                className="absolute inset-0 w-full h-full z-10"
-                style={{ objectFit }}
-                referrerPolicy="no-referrer"
-                onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    if (target.dataset.retried) return;
-                    target.dataset.retried = "true";
-                    advance();
-                }}
-            />
-        </>
-    );
+    /** Render a single photo/video layer (blurred bg + main content). */
+    const renderPhotoLayer = (photo: Photo, isCurrent: boolean) => {
+        const isVideo = photo.media_type === 'video' && photo.video_url;
+
+        return (
+            <>
+                {/* Blurred Background Layer — use the thumbnail/image URL */}
+                <div
+                    className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
+                    style={{ backgroundImage: `url(${photo.url})` }}
+                />
+
+                {isVideo ? (
+                    /* Video element — streams directly from source (no proxy) */
+                    <video
+                        ref={isCurrent ? videoRef : undefined}
+                        src={photo.video_url!}
+                        className="absolute inset-0 w-full h-full z-10"
+                        style={{ objectFit }}
+                        autoPlay={isCurrent}
+                        muted
+                        playsInline
+                        onPlay={() => {
+                            if (isCurrent) setIsVideoPlaying(true);
+                        }}
+                        onEnded={() => {
+                            if (isCurrent) {
+                                setIsVideoPlaying(false);
+                                advance();
+                            }
+                        }}
+                        onError={() => {
+                            if (isCurrent) {
+                                setIsVideoPlaying(false);
+                                advance();
+                            }
+                        }}
+                    />
+                ) : (
+                    /* Image element — proxied via CDN */
+                    <img
+                        src={photo.url}
+                        alt="Frame Content"
+                        className="absolute inset-0 w-full h-full z-10"
+                        style={{ objectFit }}
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            if (target.dataset.retried) return;
+                            target.dataset.retried = "true";
+                            advance();
+                        }}
+                    />
+                )}
+            </>
+        );
+    };
 
     return (
         <div className="absolute inset-0 w-full h-full bg-deep-space overflow-hidden z-0">
-            {/* Current photo layer */}
+            {/* Current photo/video layer */}
             {currentPhoto && (
                 <div style={getLayerStyles('current')} key={`current-${currentPhoto.id}`}>
-                    {renderPhotoLayer(currentPhoto)}
+                    {renderPhotoLayer(currentPhoto, true)}
                 </div>
             )}
 
-            {/* Next photo layer (only rendered when different from current) */}
+            {/* Next photo/video layer (only rendered when different from current) */}
             {nextPhoto && nextPhoto.id !== currentPhoto?.id && (
                 <div style={getLayerStyles('next')} key={`next-${nextPhoto.id}`}>
-                    {renderPhotoLayer(nextPhoto)}
+                    {renderPhotoLayer(nextPhoto, false)}
                 </div>
             )}
 

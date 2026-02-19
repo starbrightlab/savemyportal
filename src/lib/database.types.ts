@@ -81,8 +81,10 @@ export type Database = {
           external_id: string
           height: number | null
           id: string
+          media_type: string
           source_id: string
           url: string
+          video_url: string | null
           width: number | null
         }
         Insert: {
@@ -91,8 +93,10 @@ export type Database = {
           external_id: string
           height?: number | null
           id?: string
+          media_type?: string
           source_id: string
           url: string
+          video_url?: string | null
           width?: number | null
         }
         Update: {
@@ -101,8 +105,10 @@ export type Database = {
           external_id?: string
           height?: number | null
           id?: string
+          media_type?: string
           source_id?: string
           url?: string
+          video_url?: string | null
           width?: number | null
         }
         Relationships: [
