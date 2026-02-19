@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
+import { TierProvider } from '@/context/TierContext';
 
 interface ProvidersProps {
     children: ReactNode;
@@ -10,7 +11,9 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
     return (
         <AuthProvider>
-            {children}
+            <TierProvider>
+                {children}
+            </TierProvider>
         </AuthProvider>
     );
 }

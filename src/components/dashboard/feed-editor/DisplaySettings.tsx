@@ -1,20 +1,31 @@
 import React from 'react';
 import { FeedConfig } from './types';
+import ProBadge from '@/components/ProBadge';
 
 interface DisplaySettingsProps {
     config: FeedConfig;
     onChange: (config: FeedConfig) => void;
+    isPro?: boolean;
 }
 
-export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChange }) => {
+export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChange, isPro = true }) => {
     const handleChange = (key: keyof FeedConfig, value: any) => {
+        if (!isPro) return;
         onChange({ ...config, [key]: value });
     };
 
+    const lockedClass = !isPro ? 'opacity-40 pointer-events-none' : '';
+
     return (
         <div>
-            <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2">Display Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h3 className="text-lg font-bold text-white mb-4 border-b border-white/10 pb-2 flex items-center gap-2">
+                Display Settings
+                {!isPro && <ProBadge />}
+            </h3>
+            {!isPro && (
+                <p className="text-xs text-gray-500 mb-4">Upgrade to Pro to customise display settings.</p>
+            )}
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${lockedClass}`}>
 
                 {/* Interval */}
                 <div>
@@ -27,6 +38,7 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                         className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                         value={config.interval}
                         onChange={(e) => handleChange('interval', parseInt(e.target.value))}
+                        disabled={!isPro}
                     />
                 </div>
 
@@ -34,9 +46,10 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                 <div>
                     <label className="block text-sm font-bold text-gray-400 mb-2">Image Fit</label>
                     <select
-                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white disabled:cursor-not-allowed"
                         value={config.fit}
                         onChange={(e) => handleChange('fit', e.target.value)}
+                        disabled={!isPro}
                     >
                         <option value="cover">Fill Screen (Crop)</option>
                         <option value="contain">Fit Screen (Bars)</option>
@@ -47,9 +60,10 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                 <div>
                     <label className="block text-sm font-bold text-gray-400 mb-2">Transition</label>
                     <select
-                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white disabled:cursor-not-allowed"
                         value={config.transition === 'fade' ? 'crossfade' : config.transition}
                         onChange={(e) => handleChange('transition', e.target.value)}
+                        disabled={!isPro}
                     >
                         <option value="crossfade">Crossfade</option>
                         <option value="slide">Slide</option>
@@ -61,11 +75,15 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
 
                 {/* Video Playback */}
                 <div>
-                    <label className="block text-sm font-bold text-gray-400 mb-2">Video Playback</label>
+                    <label className="block text-sm font-bold text-gray-400 mb-2 flex items-center gap-2">
+                        Video Playback
+                        {!isPro && <ProBadge />}
+                    </label>
                     <select
-                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white disabled:cursor-not-allowed"
                         value={config.video_behavior || 'full'}
                         onChange={(e) => handleChange('video_behavior', e.target.value)}
+                        disabled={!isPro}
                     >
                         <option value="full">Play Full Video</option>
                         <option value="interval">Cut at Slide Interval</option>
@@ -79,6 +97,7 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                             type="checkbox"
                             checked={config.shuffle !== false}
                             onChange={(e) => handleChange('shuffle', e.target.checked)}
+                            disabled={!isPro}
                         />
                         <span className="text-gray-300">Shuffle Order</span>
                     </label>
@@ -87,6 +106,7 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                             type="checkbox"
                             checked={config.show_clock}
                             onChange={(e) => handleChange('show_clock', e.target.checked)}
+                            disabled={!isPro}
                         />
                         <span className="text-gray-300">Show Clock</span>
                     </label>
@@ -95,8 +115,12 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                             type="checkbox"
                             checked={config.video_sound || false}
                             onChange={(e) => handleChange('video_sound', e.target.checked)}
+                            disabled={!isPro}
                         />
-                        <span className="text-gray-300">Video Sound</span>
+                        <span className="text-gray-300 flex items-center gap-2">
+                            Video Sound
+                            {!isPro && <ProBadge />}
+                        </span>
                     </label>
                 </div>
             </div>

@@ -2,12 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useTier } from '@/context/TierContext';
 import { supabase } from '@/lib/supabase';
+import { TIER_LIMITS } from '@/lib/tier-limits';
 import SourceCard from '@/components/dashboard/SourceCard';
 import FeedCard from '@/components/dashboard/FeedCard';
 import FeedEditor from '@/components/dashboard/FeedEditor';
+import UpgradePrompt from '@/components/UpgradePrompt';
+import ProBadge from '@/components/ProBadge';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFeeds, useCreateFeed, useDeleteFeed } from '@/hooks/useFeeds';
 import { useAllSources, useDeleteSource } from '@/hooks/useSources';
@@ -18,14 +22,10 @@ interface Message {
     text: string;
 }
 
-const DONATE_TIERS = [
-    { amount: '$5', label: 'Coffee', url: 'https://buy.stripe.com/4gM14mgK081l4LYeUbenS02' },
-    { amount: '$10', label: 'Server Month', url: 'https://buy.stripe.com/5kQ4gy8du3L50vI4fxenS01', highlighted: true },
-    { amount: '$25', label: 'Champion', url: 'https://buy.stripe.com/00w28qeBS6XhemycM3enS00' },
-];
-
 export default function Dashboard() {
     const { user, loading: authLoading } = useAuth();
+    const { isPro, refetchTier } = useTier();
+    const searchParams = useSearchParams();
     const [newUrl, setNewUrl] = useState('');
     const [editingFeed, setEditingFeed] = useState<Feed | null>(null);
     const [message, setMessage] = useState<Message | null>(null);
@@ -38,11 +38,25 @@ export default function Dashboard() {
     const router = useRouter();
     const queryClient = useQueryClient();
 
+    const [upgradeSuccess, setUpgradeSuccess] = useState(false);
+
     useEffect(() => {
         if (!authLoading && !user) {
             router.push('/onboarding');
         }
     }, [authLoading, user, router]);
+
+    // Handle post-upgrade redirect from Stripe
+    useEffect(() => {
+        if (searchParams.get('upgrade') === 'success') {
+            refetchTier();
+            setUpgradeSuccess(true);
+            // Poll briefly in case webhook hasn't fired yet
+            const poll = setInterval(() => refetchTier(), 2000);
+            const timeout = setTimeout(() => clearInterval(poll), 10000);
+            return () => { clearInterval(poll); clearTimeout(timeout); };
+        }
+    }, [searchParams, refetchTier]);
 
     const { data: sources = [] } = useAllSources(user?.id);
     const { data: feeds = [], isLoading: loadingFeeds } = useFeeds(user?.id);
@@ -205,6 +219,24 @@ export default function Dashboard() {
 
             <div className="max-w-5xl mx-auto px-6 pt-8 space-y-10">
 
+                {/* ─── Upgrade Success Banner ─── */}
+                {upgradeSuccess && isPro && (
+                    <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-sm font-bold text-green-300">Welcome to Pro!</p>
+                            <p className="text-xs text-green-400/70">All features are now unlocked. Enjoy unlimited feeds, sources, videos, and full customisation.</p>
+                        </div>
+                        <button onClick={() => setUpgradeSuccess(false)} className="text-green-400/50 hover:text-green-400 text-lg">
+                            &times;
+                        </button>
+                    </div>
+                )}
+
                 {/* ─── Feeds ─── */}
                 <section>
                     <div className="flex justify-between items-center mb-4">
@@ -213,12 +245,16 @@ export default function Dashboard() {
                             <p className="text-sm text-gray-500 mt-0.5">Each feed is a collection of photo sources with its own display settings.</p>
                         </div>
                         {feeds.length > 0 && !showNewFeedInput && (
-                            <button
-                                onClick={() => setShowNewFeedInput(true)}
-                                className="px-4 py-2 text-sm font-semibold text-electric-blue border border-electric-blue/25 hover:border-electric-blue/50 hover:bg-electric-blue/5 rounded-lg transition-all flex items-center gap-1.5"
-                            >
-                                <span className="text-lg leading-none">+</span> New Feed
-                            </button>
+                            feeds.length < TIER_LIMITS[isPro ? 'pro' : 'free'].maxFeeds ? (
+                                <button
+                                    onClick={() => setShowNewFeedInput(true)}
+                                    className="px-4 py-2 text-sm font-semibold text-electric-blue border border-electric-blue/25 hover:border-electric-blue/50 hover:bg-electric-blue/5 rounded-lg transition-all flex items-center gap-1.5"
+                                >
+                                    <span className="text-lg leading-none">+</span> New Feed
+                                </button>
+                            ) : (
+                                <UpgradePrompt feature="unlimited feeds" compact />
+                            )
                         )}
                     </div>
 
@@ -287,23 +323,29 @@ export default function Dashboard() {
                     </div>
 
                     {/* Add Source Input */}
-                    <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                        <input
-                            type="text"
-                            placeholder="Paste a Google Photos or iCloud shared album link..."
-                            className="flex-1 bg-white/[0.03] border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
-                            value={newUrl}
-                            onChange={(e) => setNewUrl(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
-                        />
-                        <button
-                            onClick={handleAddSource}
-                            disabled={addSourceMutation.isPending || !newUrl}
-                            className="px-5 py-2.5 bg-white/[0.06] hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40"
-                        >
-                            {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
-                        </button>
-                    </div>
+                    {sources.length < TIER_LIMITS[isPro ? 'pro' : 'free'].maxSources ? (
+                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                            <input
+                                type="text"
+                                placeholder="Paste a Google Photos or iCloud shared album link..."
+                                className="flex-1 bg-white/[0.03] border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-600"
+                                value={newUrl}
+                                onChange={(e) => setNewUrl(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
+                            />
+                            <button
+                                onClick={handleAddSource}
+                                disabled={addSourceMutation.isPending || !newUrl}
+                                className="px-5 py-2.5 bg-white/[0.06] hover:bg-white/10 border border-white/10 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-40"
+                            >
+                                {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="mb-4">
+                            <UpgradePrompt feature="unlimited sources" compact />
+                        </div>
+                    )}
 
                     {message && (
                         <div className={`mb-4 text-sm font-medium px-4 py-2.5 rounded-lg ${
@@ -336,34 +378,36 @@ export default function Dashboard() {
                 {/* ─── Divider ─── */}
                 <div className="border-t border-white/5" />
 
-                {/* ─── Support ─── */}
+                {/* ─── Pro Upgrade / Status ─── */}
                 <section>
-                    <h2 className="text-lg font-bold text-white mb-1">Support SaveMyPortal</h2>
-                    <p className="text-sm text-gray-500 mb-4">Help keep the project free and actively developed.</p>
-                    <div className="flex flex-wrap gap-3">
-                        {DONATE_TIERS.map((tier) => (
-                            <a
-                                key={tier.amount}
-                                href={tier.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-[1.03] ${
-                                    tier.highlighted
-                                        ? 'border border-soft-gold/40 bg-soft-gold/10 text-soft-gold'
-                                        : 'border border-white/10 bg-white/[0.03] text-gray-300 hover:border-soft-gold/30 hover:text-soft-gold'
-                                }`}
-                            >
-                                <span className="font-bold">{tier.amount}</span>
-                                <span className="text-xs opacity-60">{tier.label}</span>
-                            </a>
-                        ))}
-                    </div>
+                    {isPro ? (
+                        <div className="flex items-center gap-3 p-4 rounded-xl border border-soft-gold/15 bg-soft-gold/5">
+                            <div className="w-8 h-8 rounded-lg bg-soft-gold/10 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-soft-gold" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zm7-10a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 3.456a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-3.456A1 1 0 0112 2z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-soft-gold">Pro Active</p>
+                                <p className="text-xs text-gray-500">All features unlocked. Thank you for your support!</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <UpgradePrompt />
+                    )}
                 </section>
 
                 {/* ─── Account ─── */}
                 <section className="rounded-xl border border-white/5 bg-white/[0.02] p-6 space-y-6">
                     <div>
-                        <h2 className="text-lg font-bold text-white mb-1">Account</h2>
+                        <h2 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
+                            Account
+                            {isPro ? <ProBadge /> : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-white/5 border border-white/10 rounded">
+                                    Free
+                                </span>
+                            )}
+                        </h2>
                         <p className="text-sm text-gray-500">Signed in as {user.email}</p>
                     </div>
 

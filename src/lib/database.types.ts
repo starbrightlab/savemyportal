@@ -187,6 +187,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          tier: string
+          stripe_payment_id: string | null
+          upgraded_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          tier?: string
+          stripe_payment_id?: string | null
+          upgraded_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          tier?: string
+          stripe_payment_id?: string | null
+          upgraded_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
