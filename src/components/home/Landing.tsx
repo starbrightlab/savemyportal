@@ -137,7 +137,7 @@ export default function Landing() {
                         <div className="space-y-6">
                             <Link
                                 href="/onboarding"
-                                className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center gap-4 shadow-2xl"
+                                className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl"
                             >
                                 Get Started
                             </Link>
