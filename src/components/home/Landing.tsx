@@ -10,6 +10,7 @@ import WakeLock, { WakeLockHandle } from '@/components/frame/WakeLock';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Feed } from '@/types/feed';
+import MarketingHero from './MarketingHero';
 
 export default function Landing() {
     const { user, loading } = useAuth();
@@ -109,10 +110,13 @@ export default function Landing() {
                 </FrameErrorBoundary>
             </div>
 
-            {/* Overlay Layer: Visible when NOT in Frame Mode */}
+            {/* Marketing Hero for Guests */}
+            {!user && !isFrameMode && <MarketingHero />}
+
+            {/* Overlay Layer: Visible when NOT in Frame Mode (logged-in users only) */}
             <div
                 className={`absolute inset-0 bg-black/30 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
-                ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                ${isFrameMode || !user ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
                     <div className="text-center space-y-4">
@@ -128,21 +132,7 @@ export default function Landing() {
                         </h1>
                     </div>
 
-                    {!user ? (
-                        /* GUEST STATE */
-                        <div className="flex flex-col items-center gap-8">
-                            <Link
-                                href="/onboarding"
-                                className="px-20 py-5 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl mb-8"
-                                style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
-                            >
-                                Get Started
-                            </Link>
-                            <p className="text-white/70 text-lg md:text-xl font-light max-w-md mx-auto">
-                                Transform your device into a beautiful digital photo frame.
-                            </p>
-                        </div>
-                    ) : (
+                    {!user ? null : (
                         /* LOGGED IN STATE */
                         <div className="flex flex-col items-center gap-4 w-full">
                             {/* CTA Button: Centered & Large */}
