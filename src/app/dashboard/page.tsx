@@ -68,16 +68,6 @@ export default function Dashboard() {
     const deleteFeedMutation = useDeleteFeed();
     const deleteSourceMutation = useDeleteSource();
 
-    /** Ensure the session token is fresh before calling an edge function. */
-    const refreshSession = async () => {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (!session || error) {
-            // Try to refresh
-            const { error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError) throw new Error('Session expired — please sign in again.');
-        }
-    };
-
     const addSourceMutation = useMutation({
         mutationFn: async (url: string) => {
             const type = identifySourceType(url);
@@ -90,14 +80,13 @@ export default function Dashboard() {
                 .single();
             if (error) throw error;
 
-            await refreshSession();
-            const { data: scrapeData, error: scrapeError } = await supabase.functions.invoke('source-manager', {
-                body: { sourceId: source.id }
+            const response = await fetch('/api/scrape', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceId: source.id }),
             });
-            if (scrapeError) {
-                const detail = scrapeData?.error || scrapeError.message;
-                throw new Error(detail);
-            }
+            const scrapeData = await response.json();
+            if (!response.ok) throw new Error(scrapeData.error || 'Scrape failed');
 
             return { source, count: scrapeData.count };
         },
@@ -113,14 +102,13 @@ export default function Dashboard() {
 
     const syncSourceMutation = useMutation({
         mutationFn: async (id: string) => {
-            await refreshSession();
-            const { data: scrapeData, error } = await supabase.functions.invoke('source-manager', {
-                body: { sourceId: id }
+            const response = await fetch('/api/scrape', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sourceId: id }),
             });
-            if (error) {
-                const detail = scrapeData?.error || error.message;
-                throw new Error(detail);
-            }
+            const scrapeData = await response.json();
+            if (!response.ok) throw new Error(scrapeData.error || 'Sync failed');
             return scrapeData;
         },
         onSuccess: (data) => {
@@ -178,14 +166,9 @@ export default function Dashboard() {
         setDeleting(true);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) throw new Error('No session');
-
-            const { data, error } = await supabase.functions.invoke('delete-account', {
-                headers: { Authorization: `Bearer ${session.access_token}` },
-            });
-
-            if (error) throw error;
+            const response = await fetch('/api/delete-account', { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to delete account');
 
             await supabase.auth.signOut();
             router.push('/');
