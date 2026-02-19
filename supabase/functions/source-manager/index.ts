@@ -85,7 +85,9 @@ serve(async (req) => {
                     url: item.url,
                     width: item.width,
                     height: item.height,
-                    captured_at: item.captured_at ? new Date(item.captured_at) : null
+                    captured_at: item.captured_at ? new Date(item.captured_at) : null,
+                    media_type: item.media_type || 'image',
+                    video_url: item.video_url || null,
                 })),
                 { onConflict: 'source_id, external_id' }
             )
