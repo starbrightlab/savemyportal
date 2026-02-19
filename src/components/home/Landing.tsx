@@ -114,32 +114,44 @@ export default function Landing() {
                 className={`absolute inset-0 bg-black/30 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
-                <div className="text-center space-y-8 max-w-2xl px-6">
-                    <div className="text-center space-y-4">
-                        <div className="flex justify-center">
-                            <img
-                                src="/savemyportal-logo-white.svg"
-                                alt="SaveMyPortal Logo"
-                                className="w-32 h-32 md:w-48 md:h-48 drop-shadow-[0_0_30px_rgba(59,130,246,0.3)] animate-pulse-slow"
-                            />
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-light font-outfit tracking-tight">
+                <div className="text-center space-y-6 max-w-2xl px-6">
+                    {/* Logo + Brand - Side by side on wide, stacked on narrow */}
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-5">
+                        <img
+                            src="/savemyportal-logo-white.svg"
+                            alt="SaveMyPortal Logo"
+                            className="w-16 h-16 md:w-20 md:h-20 drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+                        />
+                        <h1 className="text-2xl md:text-3xl font-light font-outfit tracking-tight text-white/90">
                             SaveMyPortal
                         </h1>
                     </div>
 
                     {!user ? (
                         /* GUEST STATE */
-                        <div className="flex flex-col items-center gap-8">
+                        <div className="flex flex-col items-center gap-6">
+                            {/* Headline */}
+                            <div className="text-center space-y-2">
+                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold font-outfit text-white leading-tight">
+                                    Memories Live On.<br className="md:hidden" />{' '}
+                                    <span className="text-white/90">Your Device Should Too.</span>
+                                </h2>
+                                <p className="text-base md:text-lg text-white/70 font-light">
+                                    Turn any screen into a beautiful digital frame.
+                                </p>
+                            </div>
+
+                            {/* CTA - Large, accessible (min 48px touch target) */}
                             <Link
                                 href="/onboarding"
-                                className="px-20 py-5 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl mb-8"
-                                style={{ background: "rgba(0, 0, 0, 0.1)", backdropFilter: "blur(12px)" }}
+                                className="min-h-[56px] px-10 py-4 bg-electric-blue hover:bg-blue-500 text-white rounded-2xl text-xl md:text-2xl font-bold transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_50px_rgba(59,130,246,0.5)] flex items-center justify-center"
                             >
-                                Get Started
+                                Get Started Free
                             </Link>
-                            <p className="text-white/70 text-lg md:text-xl font-light max-w-md mx-auto">
-                                Transform your device into a beautiful digital photo frame.
+
+                            {/* Reassurance */}
+                            <p className="text-sm text-white/50 font-light">
+                                Free forever • No tech skills needed
                             </p>
                         </div>
                     ) : (
