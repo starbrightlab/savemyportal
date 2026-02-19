@@ -152,19 +152,29 @@ export default function Landing() {
 
                             {/* Feed Selector — only visible with 2+ feeds */}
                             {feeds.length >= 2 && (
-                                <div className="flex items-center gap-3">
-                                    <select
-                                        value={activeFeedId || ''}
-                                        onChange={(e) => handleFeedChange(e.target.value)}
-                                        className="appearance-none px-6 py-2.5 rounded-full text-sm font-medium text-white border border-white/20 cursor-pointer focus:outline-none focus:border-white/40 transition-colors"
-                                        style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
-                                    >
-                                        {feeds.map(f => (
-                                            <option key={f.id} value={f.id} className="bg-gray-900 text-white">
-                                                {f.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                <div className="flex flex-col items-center gap-2 w-full max-w-xs">
+                                    <label className="text-sm text-white/50 font-medium tracking-wide uppercase">
+                                        Select Feed
+                                    </label>
+                                    <div className="relative w-full">
+                                        <select
+                                            value={activeFeedId || ''}
+                                            onChange={(e) => handleFeedChange(e.target.value)}
+                                            className="appearance-none w-full px-6 py-3.5 rounded-2xl text-lg font-semibold text-center text-white border border-white/25 cursor-pointer focus:outline-none focus:border-white/50 transition-all pr-12"
+                                            style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
+                                        >
+                                            {feeds.map(f => (
+                                                <option key={f.id} value={f.id} className="bg-gray-900 text-white">
+                                                    {f.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg className="w-5 h-5 text-white/50" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -214,7 +224,7 @@ export default function Landing() {
             </div>
             {/* Footer - Hidden in Frame Mode */}
             <footer
-                className={`absolute bottom-0 w-full p-6 flex flex-col md:flex-row justify-between items-center text-xs text-white/40 z-20 transition-opacity duration-1000
+                className={`absolute bottom-0 bg-black/50 w-full p-6 flex flex-col md:flex-row justify-between items-center text-xs text-white/40 z-20 transition-opacity duration-1000
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="w-full md:w-1/3 text-center md:text-left hidden md:block">

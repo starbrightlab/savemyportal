@@ -48,10 +48,13 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                     <label className="block text-sm font-bold text-gray-400 mb-2">Transition</label>
                     <select
                         className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white"
-                        value={config.transition}
+                        value={config.transition === 'fade' ? 'crossfade' : config.transition}
                         onChange={(e) => handleChange('transition', e.target.value)}
                     >
-                        <option value="fade">Fade</option>
+                        <option value="crossfade">Crossfade</option>
+                        <option value="slide">Slide</option>
+                        <option value="zoom-fade">Zoom Fade</option>
+                        <option value="push">Push</option>
                         <option value="none">Instant</option>
                     </select>
                 </div>
