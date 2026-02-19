@@ -138,14 +138,6 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="flex gap-4 mb-2">
-                {/*
-                    <button
-                        onClick={() => supabase.auth.signOut()}
-                        className="px-6 py-3 glass rounded-full hover:bg-white/10 transition-all text-sm font-medium text-red-400 hover:text-red-300"
-                    >
-                        Sign Out
-                    </button>
-                */}
                     <Link href="/" className="px-6 py-3 bg-electric-blue hover:bg-blue-600 rounded-full transition-all text-sm font-bold shadow-lg shadow-electric-blue/20">
                         Back
                     </Link>
@@ -224,7 +216,7 @@ export default function Dashboard() {
             </section>
 
             {/* Sources Section (Secondary) */}
-            <section className="opacity-80 hover:opacity-100 transition-opacity">
+            <section className="opacity-80 hover:opacity-100 transition-opacity mb-4">
                 <h2 className="text-xl font-bold mb-3 text-gray-300">Sources</h2>
 
                 {/* Add Source Input - Condensed */}
