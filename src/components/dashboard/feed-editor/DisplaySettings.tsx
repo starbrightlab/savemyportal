@@ -59,6 +59,19 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                     </select>
                 </div>
 
+                {/* Video Playback */}
+                <div>
+                    <label className="block text-sm font-bold text-gray-400 mb-2">Video Playback</label>
+                    <select
+                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white"
+                        value={config.video_behavior || 'full'}
+                        onChange={(e) => handleChange('video_behavior', e.target.value)}
+                    >
+                        <option value="full">Play Full Video</option>
+                        <option value="interval">Cut at Slide Interval</option>
+                    </select>
+                </div>
+
                 {/* Options */}
                 <div className="space-y-2">
                     <label className="flex items-center gap-3 cursor-pointer">

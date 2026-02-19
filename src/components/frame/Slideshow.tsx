@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Feed, TransitionType } from '@/types/feed';
+import type { Feed, TransitionType, VideoBehavior } from '@/types/feed';
 
 interface Photo {
     id: string;
@@ -74,6 +74,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const objectFit = config.fit || 'cover';
     const showClock = config.show_clock || false;
     const shuffle = config.shuffle !== false; // default true
+    const videoBehavior: VideoBehavior = (config.video_behavior as VideoBehavior) || 'full';
 
     // Normalise transition value — map legacy 'fade' to 'crossfade'
     const transition: TransitionType = (() => {
@@ -89,6 +90,38 @@ export default function Slideshow({ feed }: SlideshowProps) {
     // Video playback — when a video is the current item, let it play to completion
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+
+    // Wake Lock — keep the Portal screen alive while the slideshow runs
+    useEffect(() => {
+        let wakeLock: WakeLockSentinel | null = null;
+
+        const requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch {
+                // Wake Lock request failed — device may not support it, or page isn't visible
+            }
+        };
+
+        requestWakeLock();
+
+        // Re-acquire wake lock when page becomes visible again (e.g. tab switch, screen unlock)
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            if (wakeLock) {
+                wakeLock.release().catch(() => {});
+            }
+        };
+    }, []); // Runs once on mount — completely independent of video/photo state
 
     // Clock — update every 30 seconds, 12-hour format
     useEffect(() => {
@@ -244,23 +277,29 @@ export default function Slideshow({ feed }: SlideshowProps) {
         };
     }, []);
 
-    // Reset video state when the current item changes
+    // Reset video state and pause any playing video when the current item changes
     useEffect(() => {
         const current = photos[currentIndex];
         if (!current || current.media_type !== 'video') {
             setIsVideoPlaying(false);
         }
+        // Pause the previous video if it's still playing (e.g. in 'interval' mode)
+        if (videoRef.current && !current?.video_url) {
+            videoRef.current.pause();
+            videoRef.current = null;
+        }
     }, [currentIndex, photos]);
 
     useEffect(() => {
         if (photos.length <= 1 || sleeping) return;
-        // When a video is playing, don't auto-advance on timer — the video's onEnded handles it
-        if (isVideoPlaying) return;
+        // When a video is playing in 'full' mode, don't auto-advance — the video's onEnded handles it
+        // In 'interval' mode, the timer keeps running and will cut the video at the normal interval
+        if (isVideoPlaying && videoBehavior === 'full') return;
 
         const fallbackInterval = usingFallback ? 15000 : intervalTime;
         const timer = setInterval(advance, fallbackInterval);
         return () => clearInterval(timer);
-    }, [photos.length, intervalTime, sleeping, advance, usingFallback, isVideoPlaying]);
+    }, [photos.length, intervalTime, sleeping, advance, usingFallback, isVideoPlaying, videoBehavior]);
 
     // Current and next indices / photos
     const nextIdx = photos.length > 1 ? (currentIndex + 1) % photos.length : currentIndex;
@@ -392,7 +431,9 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         onEnded={() => {
                             if (isCurrent) {
                                 setIsVideoPlaying(false);
-                                advance();
+                                // In 'full' mode, advance when video ends
+                                // In 'interval' mode, the timer handles advancement
+                                if (videoBehavior === 'full') advance();
                             }
                         }}
                         onError={() => {
