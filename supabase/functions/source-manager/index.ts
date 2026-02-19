@@ -78,21 +78,43 @@ serve(async (req) => {
 
         // 3. Upsert items
         if (items.length > 0) {
-            const { error: upsertError } = await supabaseClient.from('source_items').upsert(
-                items.map(item => ({
+            // Build rows — include media_type/video_url when available
+            const rows = items.map(item => {
+                const row: Record<string, any> = {
                     source_id: sourceId,
                     external_id: item.external_id,
                     url: item.url,
                     width: item.width,
                     height: item.height,
                     captured_at: item.captured_at ? new Date(item.captured_at) : null,
-                    media_type: item.media_type || 'image',
-                    video_url: item.video_url || null,
-                })),
-                { onConflict: 'source_id, external_id' }
-            )
+                }
+                // Only include video columns if the scraper returned them
+                // This keeps the function backwards-compatible before the migration is applied
+                if (item.media_type) row.media_type = item.media_type
+                if (item.video_url) row.video_url = item.video_url
+                return row
+            })
 
-            if (upsertError) throw upsertError
+            let upsertError: any = null
+
+            // Try with video columns first
+            const result = await supabaseClient.from('source_items').upsert(rows, { onConflict: 'source_id, external_id' })
+            upsertError = result.error
+
+            // If it fails (e.g. columns don't exist yet), retry without video columns
+            if (upsertError) {
+                console.warn('Upsert with video columns failed, retrying without:', upsertError.message)
+                const fallbackRows = items.map(item => ({
+                    source_id: sourceId,
+                    external_id: item.external_id,
+                    url: item.url,
+                    width: item.width,
+                    height: item.height,
+                    captured_at: item.captured_at ? new Date(item.captured_at) : null,
+                }))
+                const fallbackResult = await supabaseClient.from('source_items').upsert(fallbackRows, { onConflict: 'source_id, external_id' })
+                if (fallbackResult.error) throw fallbackResult.error
+            }
         }
 
         // 4. Update source status
