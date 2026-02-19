@@ -44,14 +44,9 @@ const Onboarding = () => {
                         .eq('feed_id', feeds[0].id);
 
                     if (count && count > 0) {
-                        console.log(`[Onboarding] Valid config found: Feed ${feeds[0].id} has ${count} sources. Redirecting to home.`);
                         router.replace('/');
                         return;
-                    } else {
-                        console.log(`[Onboarding] Feed found (${feeds[0].id}) but no sources (count: ${count}). Proceeding to step 1.`);
                     }
-                } else {
-                    console.log("[Onboarding] No feeds found. Proceeding to step 1.");
                 }
 
                 setStep(1);

@@ -28,10 +28,7 @@ const WakeLock = forwardRef<WakeLockHandle, unknown>((props, ref) => {
         if (!video) return;
 
         const onPause = () => {
-            // If we expect it to be playing, we might want to force it.
-            // For now, we only log. Logic to force-stay-awake should be handled by the parent
-            // calling .play() when entering Frame Mode.
-            console.log("[WakeLock] Video paused.");
+            // Intentional no-op. Parent calls .play() when entering Frame Mode.
         };
 
         const onEnded = () => {

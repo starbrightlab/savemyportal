@@ -13,15 +13,12 @@ const StepAuth = ({ onNext }: StepAuthProps) => {
     // Auto-advance logic with Consent Recording
     React.useEffect(() => {
         const recordConsent = async () => {
-            console.log(`[StepAuth] Checking user: ${user?.id}`);
             if (user) {
-                // Check for pending consent from pre-redirect
                 const pending = localStorage.getItem('savemyportal_pending_consent');
-                console.log(`[StepAuth] Pending consent: ${pending}`);
 
                 if (pending === 'true') {
                     try {
-                        const { error } = await supabase
+                        await supabase
                             .from('user_consents')
                             .insert({
                                 user_id: user.id,
@@ -30,13 +27,11 @@ const StepAuth = ({ onNext }: StepAuthProps) => {
                                 agreed_at: new Date().toISOString()
                             });
 
-                        if (error) console.error('Error recording consent:', error);
                         localStorage.removeItem('savemyportal_pending_consent');
                     } catch (err) {
                         console.error('Consent recording failed:', err);
                     }
                 }
-                console.log("[StepAuth] User authenticated, calling onNext()");
                 onNext();
             }
         };
@@ -46,7 +41,6 @@ const StepAuth = ({ onNext }: StepAuthProps) => {
 
     const handleSignIn = async () => {
         if (!accepted) return;
-        console.log("[StepAuth] Initiating Google Sign-In");
         localStorage.setItem('savemyportal_pending_consent', 'true');
         await signInWithGoogle();
     };

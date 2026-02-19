@@ -20,8 +20,6 @@ export async function GET(request: Request) {
     const protocol = request.headers.get('x-forwarded-proto') || 'https'
     const origin = `${protocol}://${host}`
 
-    console.log(`[AuthCallback] Hit with code: ${!!code}, next: ${next}, origin: ${origin}, request.url origin: ${url.origin}`);
-
     if (code) {
         const cookieStore = cookies()
         const supabase = createServerClient(
@@ -33,7 +31,6 @@ export async function GET(request: Request) {
                         return cookieStore.get(name)?.value
                     },
                     set(name: string, value: string, options: CookieOptions) {
-                        console.log(`[AuthCallback] Setting cookie: ${name}`);
                         cookieStore.set({ name, value, ...options })
                     },
                     remove(name: string, options: CookieOptions) {
@@ -44,7 +41,6 @@ export async function GET(request: Request) {
         )
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            console.log(`[AuthCallback] Session exchanged successfully. Redirecting to ${next}`);
             return NextResponse.redirect(`${origin}${next}`)
         } else {
             console.error(`[AuthCallback] Error exchanging code: ${error.message}`);
