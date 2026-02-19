@@ -5,11 +5,12 @@ import type { Feed } from '@/types/feed';
 
 interface FeedCardProps {
     feed: Feed;
+    sourceCount?: number;
     onDelete: MouseEventHandler<HTMLButtonElement>;
     onEdit: MouseEventHandler<HTMLButtonElement>;
 }
 
-export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
+export default function FeedCard({ feed, sourceCount, onDelete, onEdit }: FeedCardProps) {
     const config = feed.config || {};
 
     // Config Extraction
@@ -53,6 +54,16 @@ export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
                     </button>
                 </div>
             </div>
+
+            {/* Empty feed nudge */}
+            {sourceCount === 0 && (
+                <button
+                    onClick={onEdit}
+                    className="w-full mt-2 py-2 text-xs text-electric-blue/70 hover:text-electric-blue border border-dashed border-electric-blue/20 hover:border-electric-blue/40 rounded-lg transition-colors"
+                >
+                    + Tap to add photos
+                </button>
+            )}
         </div>
     );
 }

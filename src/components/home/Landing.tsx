@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { useFeeds } from '@/hooks/useFeeds';
 import Slideshow from '@/components/frame/Slideshow';
 import FrameErrorBoundary from '@/components/frame/FrameErrorBoundary';
 import WakeLock, { WakeLockHandle } from '@/components/frame/WakeLock';
@@ -12,63 +12,53 @@ import type { Feed } from '@/types/feed';
 
 export default function Landing() {
     const { user, loading } = useAuth();
+    const { data: feeds = [] } = useFeeds(user?.id);
     const [isFrameMode, setIsFrameMode] = useState(false);
     const [showControls, setShowControls] = useState(false);
     const wakeLockRef = useRef<WakeLockHandle>(null);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [feed, setFeed] = useState<Feed | null>(null);
+    const [activeFeedId, setActiveFeedId] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (user) {
-            const fetchFeed = async () => {
-                let feedIdToFetch = null;
+    // Derive the active feed from the feeds array using priority:
+    // 1. URL param (highest) → 2. localStorage → 3. activeFeedId state → 4. first feed
+    const feed: Feed | null = (() => {
+        if (feeds.length === 0) return null;
 
-                // 1. Check URL param (Highest priority)
-                const params = new URLSearchParams(window.location.search);
-                const paramId = params.get('feedId');
-
-                if (paramId) {
-                    feedIdToFetch = paramId;
-                    // Persist for future visits on this device
-                    localStorage.setItem('active_feed_id', paramId);
-
-                    // Cleanup URL without refresh
-                    window.history.replaceState({}, '', '/');
-                } else {
-                    // 2. Check LocalStorage (Medium priority)
-                    feedIdToFetch = localStorage.getItem('active_feed_id');
-                }
-
-                let query = supabase
-                    .from('feeds')
-                    .select('*')
-                    .eq('user_id', user.id);
-
-                if (feedIdToFetch) {
-                    query = query.eq('id', feedIdToFetch);
-                } else {
-                    query = query.order('created_at', { ascending: false }).limit(1);
-                }
-
-                const { data } = await query.single(); // .single() might fail if no rows, but we handle it.
-
-                // If specific feed failed (deleted?), fallback to latest
-                if (!data && feedIdToFetch) {
-                    const { data: fallback } = await supabase
-                        .from('feeds')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .single();
-                    if (fallback) setFeed(fallback);
-                } else if (data) {
-                    setFeed(data);
-                }
-            };
-            fetchFeed();
+        // If we have an activeFeedId (from selector or init), use it
+        if (activeFeedId) {
+            const found = feeds.find(f => f.id === activeFeedId);
+            if (found) return found as Feed;
         }
-    }, [user]);
+
+        // Fallback to first feed
+        return feeds[0] as Feed;
+    })();
+
+    // On mount: check URL param → localStorage for initial feed selection
+    useEffect(() => {
+        if (feeds.length === 0) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const paramId = params.get('feedId');
+
+        if (paramId) {
+            setActiveFeedId(paramId);
+            localStorage.setItem('active_feed_id', paramId);
+            window.history.replaceState({}, '', '/');
+        } else {
+            const storedId = localStorage.getItem('active_feed_id');
+            if (storedId && feeds.some(f => f.id === storedId)) {
+                setActiveFeedId(storedId);
+            } else {
+                setActiveFeedId(feeds[0].id);
+            }
+        }
+    }, [feeds]);
+
+    const handleFeedChange = (feedId: string) => {
+        setActiveFeedId(feedId);
+        localStorage.setItem('active_feed_id', feedId);
+    };
 
     const router = useRouter();
 
@@ -120,7 +110,7 @@ export default function Landing() {
 
             {/* Overlay Layer: Visible when NOT in Frame Mode */}
             <div
-                className={`absolute inset-0 bg-black/20 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
+                className={`absolute inset-0 bg-black/30 transition-opacity duration-1000 z-10 flex flex-col items-center justify-center
                 ${isFrameMode ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
             >
                 <div className="text-center space-y-8 max-w-2xl px-6">
@@ -135,6 +125,9 @@ export default function Landing() {
                     {!user ? (
                         /* GUEST STATE */
                         <div className="space-y-6">
+                            <p className="text-white/70 text-lg md:text-xl font-light max-w-md mx-auto">
+                                Turn your old Meta Portal into a beautiful digital photo frame.
+                            </p>
                             <Link
                                 href="/onboarding"
                                 className="px-20 py-10 bg-transparent border-2 border-white/50 text-white rounded-3xl text-4xl font-bold hover:shadow-[0_0_60px_rgba(59,130,246,0.5)] transition-all transform hover:scale-105 flex items-center justify-center gap-4 shadow-2xl"
@@ -157,7 +150,25 @@ export default function Landing() {
                                 </button>
                             </div>
 
-                            {/* Secondary Controls - Pushed lower */}
+                            {/* Feed Selector — only visible with 2+ feeds */}
+                            {feeds.length >= 2 && (
+                                <div className="flex items-center gap-3">
+                                    <select
+                                        value={activeFeedId || ''}
+                                        onChange={(e) => handleFeedChange(e.target.value)}
+                                        className="appearance-none px-6 py-2.5 rounded-full text-sm font-medium text-white border border-white/20 cursor-pointer focus:outline-none focus:border-white/40 transition-colors"
+                                        style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+                                    >
+                                        {feeds.map(f => (
+                                            <option key={f.id} value={f.id} className="bg-gray-900 text-white">
+                                                {f.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Secondary Controls */}
                             <div className="flex justify-center mt-8">
                                 <Link
                                     href="/dashboard"
@@ -177,7 +188,13 @@ export default function Landing() {
                 ${isFrameMode && showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
             >
                 <div className="text-white/80 font-medium">
-                    {/* Clock or Info could go here */}
+                    {feed?.name && (
+                        <span className="text-sm text-white/60 px-4 py-2 rounded-full"
+                            style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+                        >
+                            {feed.name}
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex gap-4">
