@@ -122,26 +122,27 @@ export async function scrapeGooglePhotos(url: string) {
             timestamp = new Date(parseInt(item[2]) || item[2]);
         }
 
-        // Detect videos: Google Photos items with video data typically have
-        // metadata at item[1][3] (video duration in microseconds) or item[6]
-        // contains "video/" mime type info. We check multiple heuristics.
+        // Detect videos — wrapped in try/catch so detection failures default to 'image'
         let media_type = 'image';
         let video_url: string | null = null;
-
-        // Heuristic 1: item[1][3] is a number (video duration in µs)
-        const possibleDuration = item[1]?.[3];
-        if (typeof possibleDuration === 'number' && possibleDuration > 0) {
-            media_type = 'video';
-            video_url = `${baseUrl}=dv`;
-        }
-
-        // Heuristic 2: item[6] or nested arrays contain "video/" mime
-        if (media_type === 'image') {
-            const itemStr = JSON.stringify(item);
-            if (itemStr.includes('"video/') || itemStr.includes("'video/")) {
+        try {
+            // Heuristic 1: item[1][3] is a number (video duration in µs)
+            const possibleDuration = item[1]?.[3];
+            if (typeof possibleDuration === 'number' && possibleDuration > 0) {
                 media_type = 'video';
                 video_url = `${baseUrl}=dv`;
             }
+
+            // Heuristic 2: item[6] or nested arrays contain "video/" mime
+            if (media_type === 'image') {
+                const itemStr = JSON.stringify(item);
+                if (itemStr.includes('"video/') || itemStr.includes("'video/")) {
+                    media_type = 'video';
+                    video_url = `${baseUrl}=dv`;
+                }
+            }
+        } catch (e) {
+            console.warn('Video detection failed for item, defaulting to image:', e);
         }
 
         parsedItems.push({
@@ -237,8 +238,12 @@ export async function scrapeICloud(url: string) {
     }
 
     const assetData = await assetResponse.json();
-    const locations = assetData.locations;
-    const items = assetData.items;
+    const locations = assetData.locations || {};
+    const items = assetData.items || {};
+
+    if (!assetData.locations || !assetData.items) {
+        console.warn("Asset response missing locations or items:", Object.keys(assetData));
+    }
 
     // Map to common format
     const parsedItems = photos.map((photo: any) => {
@@ -246,18 +251,25 @@ export async function scrapeICloud(url: string) {
         if (!derivatives) return null;
 
         // Detect video items via mediaAssetType
-        const isVideo = photo.mediaAssetType === 'video';
-
-        // For videos, find the video derivative (typically has fileType like 'com.apple.quicktime-movie')
-        // For images, pick the largest derivative by width
-        let best: any = null;
+        let isVideo = false;
         let videoDeriv: any = null;
+        try {
+            isVideo = photo.mediaAssetType === 'video';
+        } catch { /* default to image */ }
+
+        // Find the best (largest) derivative and optionally the video derivative
+        let best: any = null;
 
         const derivKeys = Object.keys(derivatives);
         for (const key of derivKeys) {
             const d = derivatives[key];
-            if (isVideo && d.fileType && (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4'))) {
-                videoDeriv = d;
+            // Video derivative detection — wrapped safely
+            if (isVideo && d.fileType) {
+                try {
+                    if (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4')) {
+                        videoDeriv = d;
+                    }
+                } catch { /* ignore */ }
             }
             if (!best || parseInt(d.width || '0') > parseInt(best.width || '0')) {
                 best = d;
@@ -288,25 +300,29 @@ export async function scrapeICloud(url: string) {
         const urlPath = itemInfo.url_path;
         const finalUrl = `${scheme}://${host}${urlPath}`;
 
-        // Build video URL if applicable
+        // Build video URL if applicable — wrapped safely
         let video_url: string | null = null;
         if (isVideo && videoDeriv) {
-            const videoChecksum = videoDeriv.checksum;
-            const videoItemInfo = items[videoChecksum];
-            if (videoItemInfo) {
-                const videoLocKey = videoItemInfo.url_location;
-                const videoLocInfo = locations[videoLocKey];
-                if (videoLocInfo?.hosts?.length > 0) {
-                    video_url = `${videoLocInfo.scheme || 'https'}://${videoLocInfo.hosts[0]}${videoItemInfo.url_path}`;
+            try {
+                const videoChecksum = videoDeriv.checksum;
+                const videoItemInfo = items[videoChecksum];
+                if (videoItemInfo) {
+                    const videoLocKey = videoItemInfo.url_location;
+                    const videoLocInfo = locations[videoLocKey];
+                    if (videoLocInfo?.hosts?.length > 0) {
+                        video_url = `${videoLocInfo.scheme || 'https'}://${videoLocInfo.hosts[0]}${videoItemInfo.url_path}`;
+                    }
                 }
+            } catch (e) {
+                console.warn('Video URL resolution failed:', e);
             }
         }
 
         return {
             external_id: photo.photoGuid,
             url: finalUrl,
-            width: parseInt(best.width),
-            height: parseInt(best.height),
+            width: parseInt(best.width || '0') || 0,
+            height: parseInt(best.height || '0') || 0,
             captured_at: photo.dateCreated ? new Date(photo.dateCreated) : new Date(),
             media_type: isVideo ? 'video' : 'image',
             video_url,

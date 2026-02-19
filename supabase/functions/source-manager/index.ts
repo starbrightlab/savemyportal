@@ -11,6 +11,9 @@ serve(async (req) => {
         return new Response('ok', { headers: corsHeaders })
     }
 
+    let supabaseClient: any = null
+    let sourceId: string | null = null
+
     try {
         const authHeader = req.headers.get('Authorization')
         if (!authHeader) {
@@ -20,7 +23,7 @@ serve(async (req) => {
             })
         }
 
-        const supabaseClient = createClient(
+        supabaseClient = createClient(
             Deno.env.get('SUPABASE_URL') ?? '',
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         )
@@ -35,7 +38,8 @@ serve(async (req) => {
             })
         }
 
-        const { sourceId } = await req.json()
+        const body = await req.json()
+        sourceId = body.sourceId
 
         if (!sourceId) {
             throw new Error('Missing sourceId')
@@ -129,9 +133,20 @@ serve(async (req) => {
         })
 
     } catch (error) {
-        console.error("Scraper Error:", error)
+        const errorMsg = error.message || String(error)
+        console.error("Scraper Error:", errorMsg)
 
-        return new Response(JSON.stringify({ error: error.message }), {
+        // Save error to source record so it's visible in the dashboard
+        if (supabaseClient && sourceId) {
+            try {
+                await supabaseClient.from('sources').update({
+                    status: 'error',
+                    error_message: errorMsg,
+                }).eq('id', sourceId)
+            } catch { /* best effort */ }
+        }
+
+        return new Response(JSON.stringify({ error: errorMsg }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
