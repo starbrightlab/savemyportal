@@ -252,6 +252,64 @@ export default function Dashboard() {
                     </div>
                 )}
 
+                {/* ─── Sources ─── */}
+                <section>
+                    <div className="mb-4">
+                        <h2 className="text-lg font-bold text-white">Sources</h2>
+                        <p className="text-base text-gray-300 mt-0.5">Connected photo albums. Add a source, then assign it to one or more feeds.</p>
+                    </div>
+
+                    {/* Add Source Input */}
+                    {sources.length < TIER_LIMITS[isPro ? 'pro' : 'free'].maxSources ? (
+                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                            <input
+                                type="text"
+                                placeholder="Paste a Google Photos or iCloud shared album link..."
+                                className="flex-1 bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-base focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-500"
+                                value={newUrl}
+                                onChange={(e) => setNewUrl(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
+                            />
+                            <button
+                                onClick={handleAddSource}
+                                disabled={addSourceMutation.isPending || !newUrl}
+                                className="px-5 py-3.5 bg-white/[0.06] active:bg-white/10 border border-white/10 text-white rounded-lg text-base font-semibold transition-all disabled:opacity-40"
+                            >
+                                {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
+                            </button>
+                        </div>
+                    ) : (
+                    ''
+                    )}
+
+                    {message && (
+                        <div className={`mb-4 text-base font-medium px-4 py-3 rounded-lg ${
+                            message.type === 'error' ? 'text-red-400 bg-red-500/10 border border-red-500/20' :
+                            message.type === 'success' ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
+                            'text-blue-400 bg-blue-500/10 border border-blue-500/20'
+                        }`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    {sources.length === 0 ? (
+                        <div className="text-center py-10 text-base text-gray-300 border border-dashed border-white/10 rounded-xl bg-white/[0.02]">
+                            No sources connected yet.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sources.map(source => (
+                                <SourceCard
+                                    key={source.id}
+                                    source={source}
+                                    onSync={() => syncSourceMutation.mutateAsync(source.id)}
+                                    onDelete={() => deleteSourceMutation.mutate(source.id)}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </section>
+
                 {/* ─── Feeds ─── */}
                 <section>
                     <div className="flex justify-between items-center mb-4">
@@ -328,65 +386,7 @@ export default function Dashboard() {
                             ))}
                         </div>
                     )}
-                </section>
-
-                {/* ─── Sources ─── */}
-                <section>
-                    <div className="mb-4">
-                        <h2 className="text-lg font-bold text-white">Sources</h2>
-                        <p className="text-base text-gray-300 mt-0.5">Connected photo albums. Add a source, then assign it to one or more feeds.</p>
-                    </div>
-
-                    {/* Add Source Input */}
-                    {sources.length < TIER_LIMITS[isPro ? 'pro' : 'free'].maxSources ? (
-                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                            <input
-                                type="text"
-                                placeholder="Paste a Google Photos or iCloud shared album link..."
-                                className="flex-1 bg-white/[0.03] border border-white/10 rounded-lg px-4 py-3 text-base focus:outline-none focus:border-electric-blue transition-colors text-white placeholder-gray-500"
-                                value={newUrl}
-                                onChange={(e) => setNewUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
-                            />
-                            <button
-                                onClick={handleAddSource}
-                                disabled={addSourceMutation.isPending || !newUrl}
-                                className="px-5 py-3.5 bg-white/[0.06] active:bg-white/10 border border-white/10 text-white rounded-lg text-base font-semibold transition-all disabled:opacity-40"
-                            >
-                                {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
-                            </button>
-                        </div>
-                    ) : (
-                    ''
-                    )}
-
-                    {message && (
-                        <div className={`mb-4 text-base font-medium px-4 py-3 rounded-lg ${
-                            message.type === 'error' ? 'text-red-400 bg-red-500/10 border border-red-500/20' :
-                            message.type === 'success' ? 'text-green-400 bg-green-500/10 border border-green-500/20' :
-                            'text-blue-400 bg-blue-500/10 border border-blue-500/20'
-                        }`}>
-                            {message.text}
-                        </div>
-                    )}
-
-                    {sources.length === 0 ? (
-                        <div className="text-center py-10 text-base text-gray-300 border border-dashed border-white/10 rounded-xl bg-white/[0.02]">
-                            No sources connected yet.
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {sources.map(source => (
-                                <SourceCard
-                                    key={source.id}
-                                    source={source}
-                                    onSync={() => syncSourceMutation.mutateAsync(source.id)}
-                                    onDelete={() => deleteSourceMutation.mutate(source.id)}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </section>
+                </section>                
 
                 {/* ─── Divider ─── */}
                 <div className="border-t border-white/5" />

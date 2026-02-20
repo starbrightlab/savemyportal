@@ -54,9 +54,8 @@ export const useCreateFeed = () => {
             if (error) throw error;
             return data;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['feeds'] });
-            // Optionally update cache directly if needed
         },
     });
 };

@@ -110,7 +110,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
                     break;
                 }
             }
-        } catch (_e) {
+        } catch {
             // Ignore parse errors
         }
     }
@@ -265,7 +265,7 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
         let videoDeriv: any = null;
         try {
             isVideo = photo.mediaAssetType === 'video';
-        } catch (_e) { /* default to image */ }
+        } catch { /* default to image */ }
 
         // Find the best (largest) derivative and optionally the video derivative
         let best: any = null;
@@ -279,7 +279,7 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
                     if (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4')) {
                         videoDeriv = d;
                     }
-                } catch (_e) { /* ignore */ }
+                } catch { /* ignore */ }
             }
             if (!best || parseInt(d.width || '0') > parseInt(best.width || '0')) {
                 best = d;

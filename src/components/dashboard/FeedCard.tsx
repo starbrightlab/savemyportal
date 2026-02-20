@@ -19,12 +19,8 @@ const TRANSITION_LABELS: Record<string, string> = {
     none: 'Instant',
 };
 
-export default function FeedCard({ feed, sourceCount, onDelete, onEdit }: FeedCardProps) {
+export default function FeedCard({ feed, onDelete, onEdit }: FeedCardProps) {
     const [confirmingDelete, setConfirmingDelete] = useState(false);
-    const config = feed.config || {};
-    const interval = config.interval || 10;
-    const transition = TRANSITION_LABELS[config.transition || 'crossfade'] || 'Crossfade';
-    const fit = config.fit === 'contain' ? 'Fit' : 'Fill';
 
     const handleDelete = () => {
         if (confirmingDelete) {

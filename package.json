@@ -11,7 +11,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint src/"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -40,6 +40,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^8.56.0",
     "vitest": "^1.2.0"
   },
   "browserslist": [

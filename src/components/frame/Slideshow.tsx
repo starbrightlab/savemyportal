@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSessionKeepAlive } from '@/hooks/useSessionKeepAlive';
 import type { Feed, TransitionType, VideoBehavior, ClockPosition, ClockSize } from '@/types/feed';
 
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -172,6 +173,11 @@ export default function Slideshow({ feed }: SlideshowProps) {
         return () => clearInterval(timer);
     }, [config.sleep_schedule?.enabled, config.sleep_schedule?.start, config.sleep_schedule?.end]);
 
+    // Track whether we've ever successfully loaded real user photos.
+    // Once set, we never silently swap to fallback — the already-loaded CDN
+    // URLs are not session-gated and will continue to work.
+    const hasLoadedRealPhotosRef = useRef(false);
+
     // Fetch photos on mount — scrape fresh URLs per device session
     useEffect(() => {
         const loadPhotos = async () => {
@@ -182,6 +188,15 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 const { data: { session } } = await supabase.auth.getSession();
 
                 if (!session?.user) {
+                    // If we already have real photos loaded, keep them — the CDN
+                    // URLs work independently of the Supabase session.  This
+                    // prevents the silent swap to fallback that occurs when the
+                    // auth token expires and onAuthStateChange triggers a re-render.
+                    if (hasLoadedRealPhotosRef.current) {
+                        DEBUG && console.log('[Slideshow] Session lost but real photos already loaded — keeping current photos.');
+                        setLoading(false);
+                        return;
+                    }
                     setPhotos(shuffleArray(FALLBACK_PHOTOS));
                     setUsingFallback(true);
                     setLoading(false);
@@ -257,14 +272,21 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     });
 
                     setPhotos(shuffle ? shuffleArray(processedPhotos) : processedPhotos);
+                    hasLoadedRealPhotosRef.current = true;
                 } else {
                     setPhotos(shuffleArray(FALLBACK_PHOTOS));
                     setUsingFallback(true);
                 }
             } catch (err) {
-                console.error('Failed to load photos, using fallback imagery:', err);
-                setPhotos(shuffleArray(FALLBACK_PHOTOS));
-                setUsingFallback(true);
+                // If we already have real photos, keep them rather than swapping
+                // to fallback mid-playback (the CDN URLs still work).
+                if (hasLoadedRealPhotosRef.current) {
+                    DEBUG && console.log('[Slideshow] Fetch failed but real photos already loaded — keeping current photos.');
+                } else {
+                    console.error('Failed to load photos, using fallback imagery:', err);
+                    setPhotos(shuffleArray(FALLBACK_PHOTOS));
+                    setUsingFallback(true);
+                }
             }
 
             setLoading(false);
@@ -344,6 +366,22 @@ export default function Slideshow({ feed }: SlideshowProps) {
             rescrapeInFlightRef.current = false;
         }
     }, [shuffle]);
+
+    // Session keepalive — proactively refresh auth tokens so the slideshow never
+    // gets logged out during long playback.  Active only when real user photos are
+    // loaded (not fallback imagery).  If the session expires beyond recovery,
+    // attempt a re-scrape to give the refresh-token path one more chance.  If that
+    // also fails, photos stay on whatever was last loaded — no silent swap to
+    // fallback mid-playback.
+    const sessionExpiredReloadRef = useRef(false);
+    useSessionKeepAlive(!loading && !usingFallback, () => {
+        if (sessionExpiredReloadRef.current) return;
+        sessionExpiredReloadRef.current = true;
+        console.warn('[Slideshow] Session expired — attempting photo reload…');
+        rescrape().finally(() => {
+            sessionExpiredReloadRef.current = false;
+        });
+    });
 
     // Rate-limited re-scrape trigger — checks failure threshold + exponential backoff
     const maybeRescrape = useCallback(() => {

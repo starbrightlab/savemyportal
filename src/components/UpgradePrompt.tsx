@@ -45,17 +45,6 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
         }
     };
 
-    const priceDisplay = priceInfo ? (
-        priceInfo.discountActive ? (
-            <span className="inline-flex items-center gap-1">
-                <span className="line-through text-gray-500">${priceInfo.basePrice}</span>
-                <span className="text-soft-gold font-bold text-sm">${priceInfo.finalPrice}</span>
-            </span>
-        ) : (
-            <span className="font-bold text-sm">${priceInfo.finalPrice}</span>
-        )
-    ) : null;
-
     if (compact) {
         return (
             <button

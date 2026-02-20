@@ -52,7 +52,6 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             {/* Top row */}
             <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${status.dot}`} />
                     <div className="min-w-0">
                         <h3 className="font-semibold text-white text-lg leading-tight truncate">{label}</h3>
                         <a

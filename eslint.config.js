@@ -25,7 +25,18 @@ export default tseslint.config(
       ],
       'no-unused-vars': 'off', // Turn off JS rule to avoid conflicts with TS
       '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-explicit-any': 'warn'
+      '@typescript-eslint/no-explicit-any': 'warn',
+      // Allow short-circuit expressions like `DEBUG && console.log(...)` — this is
+      // a zero-cost debug logging pattern used throughout the codebase.
+      '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
+    },
+  },
+  // Next.js page/layout files export metadata objects alongside components — this
+  // is expected and not a react-refresh concern.
+  {
+    files: ['src/app/**/page.tsx', 'src/app/**/layout.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 )
