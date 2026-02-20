@@ -1,12 +1,12 @@
 
 # SaveMyPortal
 
-**SaveMyPortal** is an open-source initiative to repurpose Facebook Portal Plus (Gen 2) devices as premium, always-on smart home displays. It leverages a specific browser quirk (T17 Wake Lock Strategy) to prevent the device from sleeping, allowing it to function as a 24/7 photo frame or dashboard.
+**SaveMyPortal** is an open-source initiative to repurpose Facebook Portal Plus (Gen 2) devices as premium, always-on smart home displays. It leverages a specific browser quirk (Wake Lock Strategy) to prevent the device from sleeping, allowing it to function as a 24/7 photo frame or dashboard.
 
 ## Features
 - **Always On**: Uses a hidden "Heartbeat Video" to defeat the aggressive power management.
-- **Photo Frame**: (Coming Soon) High-quality slideshow with support for local and cloud sources.
-- **Dashboard**: (Coming Soon) Weather, Clock, and Home Assistant integrations.
+- **Photo Frame**: High-quality slideshow with support for local and cloud sources.
+- **Dashboard**: Settings and integrations.
 
 ## ⚠️ Hardware Compatibility (Critical)
 This project is built specifically for the **Facebook Portal Plus (Gen 2)**, which runs a modified Android version with **Chrome 98 System WebView**.
