@@ -3,10 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
 interface StepCreateFeedProps {
+    sourceId?: string | null;
     onNext: (data: { feedId: string; feedName: string }) => void;
 }
 
-const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
+const StepCreateFeed = ({ sourceId, onNext }: StepCreateFeedProps) => {
     const { user } = useAuth();
     const [feedName, setFeedName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +21,7 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
         setError(null);
 
         try {
+            // 1. Create the feed
             const { data, error } = await supabase
                 .from('feeds')
                 .insert([{ user_id: user!.id, name: feedName }])
@@ -27,6 +29,18 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
                 .single();
 
             if (error) throw error;
+
+            // 2. Link the source to this feed (if a source was added in the previous step)
+            if (sourceId) {
+                const { error: linkError } = await supabase
+                    .from('feed_sources')
+                    .insert([{ feed_id: data.id, source_id: sourceId }]);
+
+                if (linkError) {
+                    // Ignore unique constraint violation if already linked
+                    if (linkError.code !== '23505') throw linkError;
+                }
+            }
 
             // Pass the created feed ID to the next step
             onNext({ feedId: data.id, feedName: data.name });
@@ -43,7 +57,7 @@ const StepCreateFeed = ({ onNext }: StepCreateFeedProps) => {
             <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-white">Name Your Frame</h2>
                 <p className="text-gray-400">
-                    Give your collection a name like "Living Room" or "Grandma's Frame".
+                    Give your collection a name like &quot;Living Room&quot; or &quot;Grandma&apos;s Frame&quot;.
                 </p>
             </div>
 

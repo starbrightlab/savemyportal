@@ -80,7 +80,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             )}
 
             {/* Actions */}
-            <div className="flex gap-2.5 mb-1">
+            <div className="flex gap-2.5 mb-2">
                 <button
                     onClick={handleSync}
                     disabled={loading}
@@ -102,7 +102,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             {/* Meta */}
             <div className="text-xs text-gray-300 text-right">
                 {source.last_scraped_at
-                    ? `Last Sync ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+                    ? `Last sync: ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
                     : 'Never synced'
                 }
             </div>

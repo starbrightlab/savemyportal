@@ -146,7 +146,7 @@ export default function Landing() {
                                 href="/onboarding"
                                 className="min-h-[56px] px-10 py-4 bg-electric-blue hover:bg-blue-500 text-white rounded-2xl text-xl md:text-2xl font-bold transition-all transform hover:scale-105 shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_50px_rgba(59,130,246,0.5)] flex items-center justify-center"
                             >
-                                Get Started Free
+                                Get Started
                             </Link>
 
                             {/* Reassurance */}

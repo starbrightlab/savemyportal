@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface StepAddSourceProps {
-    feedId: string;
-    onComplete: () => void;
+    onNext: (data: { sourceId: string }) => void;
+    onSkip: () => void;
 }
 
-const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
+const StepAddSource = ({ onNext, onSkip }: StepAddSourceProps) => {
     const [activeTab, setActiveTab] = useState('google'); // 'google' | 'icloud'
     const [url, setUrl] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState('idle'); // idle, validating, linking, success
+    const [status, setStatus] = useState('idle'); // idle, validating, syncing, success
     const [showHelp, setShowHelp] = useState(false);
 
     const handleAddSource = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -23,7 +23,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
         setStatus('validating');
 
         try {
-            // 1. Create Source
+            // 1. Create Source (not linked to a feed yet — that happens in the next step)
             const type = activeTab === 'google' ? 'google_photos' : 'icloud';
             const { data: sourceData, error: sourceError } = await supabase
                 .from('sources')
@@ -38,18 +38,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
 
             if (sourceError) throw sourceError;
 
-            // 2. Link to Feed
-            setStatus('linking');
-            const { error: linkError } = await supabase
-                .from('feed_sources')
-                .insert([{ feed_id: feedId, source_id: sourceData.id }]);
-
-            if (linkError) {
-                // Ignore unique constraint violation if already linked
-                if (linkError.code !== '23505') throw linkError;
-            }
-
-            // 3. Validate source by doing a quick scrape (doesn't store items — just confirms the URL works)
+            // 2. Validate source by doing a quick scrape (confirms the URL works)
             setStatus('syncing');
             const scrapeResponse = await fetch('/api/scrape-urls', {
                 method: 'POST',
@@ -66,7 +55,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
 
             setStatus('success');
             setTimeout(() => {
-                onComplete();
+                onNext({ sourceId: sourceData.id });
             }, 1000);
 
         } catch (err) {
@@ -181,8 +170,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
                     <div className="flex items-center justify-center gap-2 text-blue-400 font-medium">
                         <span className="w-2 h-2 bg-blue-400 rounded-full animate-ping" />
                         {status === 'validating' && 'Saving source...'}
-                        {status === 'linking' && 'Linking to feed...'}
-                        {status === 'syncing' && 'Starting initial sync...'}
+                        {status === 'syncing' && 'Verifying album...'}
                     </div>
                 )}
 
@@ -197,7 +185,7 @@ const StepAddSource = ({ feedId, onComplete }: StepAddSourceProps) => {
 
             <button
                 type="button"
-                onClick={onComplete}
+                onClick={onSkip}
                 className="text-gray-500 hover:text-gray-300 text-sm hover:underline transition-colors"
             >
                 Skip for now

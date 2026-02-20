@@ -2,24 +2,24 @@
 
 import React, { useState } from 'react';
 import StepAuth from '@/components/Wizard/StepAuth';
-import StepCreateFeed from '@/components/Wizard/StepCreateFeed';
 import StepAddSource from '@/components/Wizard/StepAddSource';
+import StepCreateFeed from '@/components/Wizard/StepCreateFeed';
 import StepDonate from '@/components/Wizard/StepDonate';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
-const STEP_LABELS = ['Account', 'Create Feed', 'Add Photos', 'Features'];
+const STEP_LABELS = ['Account', 'Add Photos', 'Name Feed', 'Features'];
 
 const Onboarding = () => {
     const [step, setStep] = useState(0);
-    const [feedId, setFeedId] = useState<string | null>(null);
+    const [sourceId, setSourceId] = useState<string | null>(null);
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
 
     const [isChecking, setIsChecking] = useState(true);
 
-    // Check for existing configuration
+    // Check for existing configuration and resume at the right step
     React.useEffect(() => {
         if (authLoading) return;
 
@@ -31,6 +31,7 @@ const Onboarding = () => {
 
         const checkAccount = async () => {
             try {
+                // Check if user has feeds with linked sources (fully set up)
                 const { data: feeds } = await supabase
                     .from('feeds')
                     .select('id')
@@ -44,12 +45,26 @@ const Onboarding = () => {
                         .eq('feed_id', feeds[0].id);
 
                     if (count && count > 0) {
+                        // Fully set up — redirect to home
                         router.replace('/');
                         return;
                     }
                 }
 
-                setStep(1);
+                // Check if user has sources but no feeds (dropped off after adding source)
+                const { data: sources } = await supabase
+                    .from('sources')
+                    .select('id')
+                    .limit(1);
+
+                if (sources && sources.length > 0) {
+                    // Has a source but no completed feed link — resume at "Name Feed" step
+                    setSourceId(sources[0].id);
+                    setStep(2);
+                } else {
+                    // No sources, no feeds — start at "Add Photos" step
+                    setStep(1);
+                }
             } catch (e) {
                 console.error("Error checking account:", e);
                 setStep(1);
@@ -65,12 +80,17 @@ const Onboarding = () => {
         setStep(1);
     };
 
-    const handleFeedCreated = (data: { feedId: string }) => {
-        setFeedId(data.feedId);
+    const handleSourceAdded = (data: { sourceId: string }) => {
+        setSourceId(data.sourceId);
         setStep(2);
     };
 
-    const handleSourcesComplete = () => {
+    const handleSourceSkipped = () => {
+        setSourceId(null);
+        setStep(2);
+    };
+
+    const handleFeedCreated = (_data: { feedId: string; feedName: string }) => {
         setStep(3);
     };
 
@@ -124,8 +144,8 @@ const Onboarding = () => {
                 {/* Step Content Card */}
                 <div className="bg-gray-900/80 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-gray-800/50 min-h-[400px] flex flex-col justify-center">
                     {step === 0 && <StepAuth onNext={handleAuthDone} />}
-                    {step === 1 && <StepCreateFeed onNext={handleFeedCreated} />}
-                    {step === 2 && feedId && <StepAddSource feedId={feedId} onComplete={handleSourcesComplete} />}
+                    {step === 1 && <StepAddSource onNext={handleSourceAdded} onSkip={handleSourceSkipped} />}
+                    {step === 2 && <StepCreateFeed sourceId={sourceId} onNext={handleFeedCreated} />}
                     {step === 3 && <StepDonate onComplete={handleComplete} />}
                 </div>
             </div>
