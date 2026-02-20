@@ -11,7 +11,7 @@ export type VideoBehavior = 'full' | 'interval';
 export type ClockPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
 
 /** Predefined clock size presets. */
-export type ClockSize = 'small' | 'medium' | 'large';
+export type ClockSize = 'small' | 'medium' | 'large' | 'xl' | 'xxl';
 
 export interface FeedConfig {
     interval?: number | string;

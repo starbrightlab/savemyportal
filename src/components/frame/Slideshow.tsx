@@ -659,7 +659,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     <div
                         className="font-clock text-white drop-shadow-lg"
                         style={{
-                            fontSize: clockSize === 'small' ? '48px' : clockSize === 'large' ? '96px' : '72px',
+                            fontSize: clockSize === 'small' ? '48px' : clockSize === 'large' ? '96px' : clockSize === 'xl' ? '128px' : clockSize === 'xxl' ? '168px' : '72px',
                             fontWeight: 200,
                             letterSpacing: '0.04em',
                             textShadow: '0 2px 20px rgba(0,0,0,0.5)',

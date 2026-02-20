@@ -158,6 +158,8 @@ export const DisplaySettings: React.FC<DisplaySettingsProps> = ({ config, onChan
                             <option value="small">Small</option>
                             <option value="medium">Medium</option>
                             <option value="large">Large</option>
+                            <option value="xl">XL</option>
+                            <option value="xxl">XXL</option>
                         </select>
                     </div>
                 )}
