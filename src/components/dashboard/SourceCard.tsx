@@ -73,16 +73,8 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                 </span>
             </div>
 
-            {/* Meta */}
-            <div className="text-base text-gray-300 mb-3">
-                {source.last_scraped_at
-                    ? `Synced ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
-                    : 'Never synced'
-                }
-            </div>
-
             {source.error_message && (
-                <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/15 rounded-lg px-3 py-2 mb-3 truncate">
+                <p className="text-sm text-red-300 bg-red-500/10 border border-red-500/15 rounded-lg px-3 py-2 mb-1 truncate">
                     {source.error_message}
                 </p>
             )}
@@ -105,6 +97,14 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
                 >
                     {confirmingDelete ? 'Tap to Confirm' : 'Remove'}
                 </button>
+            </div>
+
+            {/* Meta */}
+            <div className="text-xs text-gray-300 mt-1">
+                {source.last_scraped_at
+                    ? `Synced ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+                    : 'Never synced'
+                }
             </div>
         </div>
     );
