@@ -50,7 +50,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
     return (
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-5 transition-all">
             {/* Top row */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-1">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <div className="min-w-0">
                         <h3 className="font-semibold text-white text-lg leading-tight truncate">{label}</h3>
@@ -80,7 +80,7 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             )}
 
             {/* Actions */}
-            <div className="flex gap-2.5">
+            <div className="flex gap-2.5 mb-1">
                 <button
                     onClick={handleSync}
                     disabled={loading}
@@ -100,9 +100,9 @@ export default function SourceCard({ source, onSync, onDelete }: SourceCardProps
             </div>
 
             {/* Meta */}
-            <div className="text-xs text-gray-300 mt-1">
+            <div className="text-xs text-gray-300 text-right">
                 {source.last_scraped_at
-                    ? `Synced ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
+                    ? `Last Sync ${new Date(source.last_scraped_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} at ${new Date(source.last_scraped_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`
                     : 'Never synced'
                 }
             </div>
