@@ -440,28 +440,40 @@ export default function Slideshow({ feed }: SlideshowProps) {
         };
     }, []);
 
-    // Reset video state when the current slide changes.  The previous
-    // <video> element is unmounted by React (we only render one for the
-    // current slide), but we still need to reset our playing flag and
-    // clean up the ref so the next video starts fresh.
+    // Reset video state when the current slide changes.
+    // NOTE: We intentionally do NOT call videoRef.current.pause() here.
+    // React unmounts the previous <video> element (we only render one for
+    // the current slide) which stops playback automatically.  Calling
+    // pause() in this effect would hit the NEWLY-MOUNTED video element
+    // (because React fires ref callbacks before effects), aborting the
+    // play() Promise from the ref callback and triggering the catch
+    // handler's advance() — creating an infinite skip loop.
     useEffect(() => {
         setIsVideoPlaying(false);
-        if (videoRef.current) {
-            videoRef.current.pause();
-            videoRef.current = null;
-        }
+        videoRef.current = null;
     }, [currentIndex]);
+
+    // Determine if the current slide is a video that should play to completion.
+    // Used by the interval timer to decide whether to suppress auto-advance.
+    const currentIsFullVideo = (() => {
+        if (videoBehavior !== 'full') return false;
+        const photo = photos[currentIndex];
+        return photo?.media_type === 'video' && !!photo.video_url;
+    })();
 
     useEffect(() => {
         if (photos.length <= 1 || sleeping) return;
-        // When a video is playing in 'full' mode, don't auto-advance — the video's onEnded handles it
-        // In 'interval' mode, the timer keeps running and will cut the video at the normal interval
-        if (isVideoPlaying && videoBehavior === 'full') return;
+        // In 'full' mode, suppress the interval timer for video slides entirely.
+        // The video's onEnded handler (or onError / play-catch fallback) will call
+        // advance() when playback finishes.  We check the media_type of the current
+        // item rather than waiting for isVideoPlaying — this avoids a race window
+        // where the interval starts before onPlay has fired and set isVideoPlaying.
+        if (currentIsFullVideo) return;
 
         const fallbackInterval = usingFallback ? 15000 : intervalTime;
         const timer = setInterval(advance, fallbackInterval);
         return () => clearInterval(timer);
-    }, [photos.length, intervalTime, sleeping, advance, usingFallback, isVideoPlaying, videoBehavior]);
+    }, [photos.length, intervalTime, sleeping, advance, usingFallback, currentIsFullVideo]);
 
     // Current and next indices / photos
     const nextIdx = photos.length > 1 ? (currentIndex + 1) % photos.length : currentIndex;
@@ -615,8 +627,12 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         ref={(el) => {
                             videoRef.current = el;
                             if (el) {
-                                el.play().catch(() => {
-                                    // Autoplay silently blocked by browser — skip
+                                el.play().catch((err) => {
+                                    // AbortError means our own code (or React unmount)
+                                    // interrupted play — not a real autoplay block.
+                                    // Ignore it; the slide lifecycle handles advancement.
+                                    if (err?.name === 'AbortError') return;
+                                    // Genuine autoplay block (NotAllowedError) — skip
                                     setIsVideoPlaying(false);
                                     advance();
                                 });
