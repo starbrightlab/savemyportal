@@ -18,7 +18,7 @@ This project is built specifically for the **Facebook Portal Plus (Gen 2)**, whi
 
 ## Getting Started
 
-**Live Demo**: [savemyportal.netlify.app](https://savemyportal.netlify.app) (Run on your Portal!)
+**Live Site**: [savemyportal.com](https://savemyportal.com) (Run on your Portal!)
 
 1.  **Clone**: `git clone https://github.com/starbrightlab/savemyportal.git`
 2.  **Install**: `npm install`
