@@ -420,13 +420,32 @@ export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): 
         const derivKeys = Object.keys(derivatives);
         for (const key of derivKeys) {
             const d = derivatives[key];
-            // Video derivative detection — wrapped safely
+            // Video derivative detection — wrapped safely.
+            // iCloud uses Apple UTI types (e.g. "com.apple.quicktime-movie",
+            // "public.mpeg-4") and sometimes raw MIME types.  We also check
+            // the url_path in items for video file extensions as a fallback.
             let isVideoDeriv = false;
             if (isVideo && d.fileType) {
                 try {
-                    if (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4')) {
+                    const ft = d.fileType.toLowerCase();
+                    if (ft.includes('movie') || ft.includes('video') || ft.includes('mp4')
+                        || ft.includes('mpeg') || ft.includes('quicktime') || ft.includes('m4v')) {
                         videoDeriv = d;
                         isVideoDeriv = true;
+                    }
+                } catch { /* ignore */ }
+            }
+            // Secondary check: if fileType didn't match, check if this derivative's
+            // resolved URL points to a video file (some iCloud responses omit fileType).
+            if (isVideo && !isVideoDeriv && d.checksum) {
+                try {
+                    const dItemInfo = items[d.checksum];
+                    if (dItemInfo?.url_path) {
+                        const lp = dItemInfo.url_path.toLowerCase();
+                        if (lp.includes('.mp4') || lp.includes('.mov') || lp.includes('.m4v')) {
+                            videoDeriv = d;
+                            isVideoDeriv = true;
+                        }
                     }
                 } catch { /* ignore */ }
             }
@@ -481,6 +500,17 @@ export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): 
                 }
             } catch (e) {
                 console.warn('Video URL resolution failed:', e);
+            }
+        }
+        // Fallback: if this is a video but we couldn't build a separate video_url
+        // (e.g. no video derivative was detected, or URL resolution failed), and
+        // the thumbnail URL itself is a video file, use it as the video_url.
+        // The Slideshow component handles this case by showing a black placeholder
+        // instead of trying to load the .mp4 as an <img>.
+        if (isVideo && !video_url) {
+            const lowerUrl = finalUrl.toLowerCase();
+            if (lowerUrl.includes('.mp4') || lowerUrl.includes('.mov') || lowerUrl.includes('.m4v')) {
+                video_url = finalUrl;
             }
         }
 

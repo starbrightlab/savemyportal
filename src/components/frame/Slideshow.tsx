@@ -565,13 +565,27 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const renderPhotoLayer = (photo: Photo, isCurrent: boolean) => {
         const isVideo = photo.media_type === 'video' && photo.video_url;
 
+        // Detect if the thumbnail URL is actually a video file (e.g. iCloud videos
+        // where the only derivative is the video itself — no separate poster image).
+        // Loading a .mp4 in an <img> or CSS background-image will always fail, so
+        // we skip those elements to avoid triggering stale-URL detection / advance.
+        const thumbnailIsVideo = isVideo && (
+            photo.url === photo.video_url ||
+            photo.url.includes('.mp4') ||
+            photo.url.includes('.mov') ||
+            photo.url.includes('.m4v')
+        );
+
         return (
             <>
-                {/* Blurred Background Layer — use the thumbnail/image URL */}
-                <div
-                    className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
-                    style={{ backgroundImage: `url("${photo.url.replace(/["\\]/g, '\\$&')}")` }}
-                />
+                {/* Blurred Background Layer — use the thumbnail/image URL.
+                    Skip if the "thumbnail" is actually a video file (iCloud edge case). */}
+                {!thumbnailIsVideo && (
+                    <div
+                        className="absolute inset-0 bg-cover bg-center opacity-30 blur-3xl scale-110"
+                        style={{ backgroundImage: `url("${photo.url.replace(/["\\]/g, '\\$&')}")` }}
+                    />
+                )}
 
                 {isVideo && isCurrent ? (
                     /* Video element — only rendered for the active (current) slide.
@@ -624,6 +638,14 @@ export default function Slideshow({ feed }: SlideshowProps) {
                             advance();
                         }}
                     />
+                ) : thumbnailIsVideo ? (
+                    /* Video-only item with no image thumbnail (e.g. iCloud video
+                       with no poster derivative).  Don't render an <img> — it would
+                       try to decode .mp4 as an image, fail, and trigger stale-URL
+                       detection / premature advance.  Show a dark placeholder
+                       instead; the real <video> renders when this slide becomes
+                       current. */
+                    <div className="absolute inset-0 w-full h-full z-10 bg-black" />
                 ) : (
                     /* Image element — used for photos AND as a placeholder for
                        off-screen video slides (shows the video thumbnail) */
