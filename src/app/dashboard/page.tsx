@@ -268,7 +268,7 @@ export default function Dashboard() {
                                     <span className="text-lg leading-none">+</span> New Feed
                                 </button>
                             ) : (
-                                <UpgradePrompt feature="unlimited feeds" compact />
+                                ''
                             )
                         )}
                     </div>
@@ -357,9 +357,7 @@ export default function Dashboard() {
                             </button>
                         </div>
                     ) : (
-                        <div className="mb-4">
-                            <UpgradePrompt feature="unlimited sources" compact />
-                        </div>
+                    ''
                     )}
 
                     {message && (

@@ -69,7 +69,6 @@ export default function UpgradePrompt({ feature, compact = false }: UpgradePromp
                 {loading ? 'Loading...' : (
                     <>
                         Upgrade to Pro
-                        {priceDisplay && <span className="ml-1 text-xs opacity-80">({priceDisplay})</span>}
                     </>
                 )}
             </button>
