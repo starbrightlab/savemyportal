@@ -165,6 +165,19 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
         }
 
         // Detect videos — wrapped in try/catch so detection failures default to 'image'
+        //
+        // Video URL strategy: we use the =m22 streaming suffix (720p MP4)
+        // instead of =dv (raw download).  =dv redirects (302) to a separate
+        // video-downloads host, serves the original container (often huge MOV
+        // files), has no Accept-Ranges support, and sets Content-Disposition:
+        // attachment — all of which break <video> streaming.  =m22 serves a
+        // transcoded MP4 directly (no redirect), supports Accept-Ranges: bytes
+        // for seeking, and is typically ~20× smaller than =dv.
+        //
+        // Why =m22 over =m37 (1080p)?  Google only generates transcodes up to
+        // the source resolution.  =m37 returns 404 for videos below 1080p
+        // (e.g. 720×1280 phone videos), while =m22 works reliably for any
+        // source ≥ 720p — which covers virtually all modern phone/camera video.
         let media_type: 'image' | 'video' = 'image';
         let video_url: string | null = null;
         try {
@@ -172,7 +185,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
             const possibleDuration = item[1]?.[3];
             if (typeof possibleDuration === 'number' && possibleDuration > 0) {
                 media_type = 'video';
-                video_url = `${baseUrl}=dv`;
+                video_url = `${baseUrl}=m22`;
             }
 
             // Heuristic 2: item[6] or nested arrays contain "video/" mime
@@ -180,7 +193,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
                 const itemStr = JSON.stringify(item);
                 if (itemStr.includes('"video/') || itemStr.includes("'video/")) {
                     media_type = 'video';
-                    video_url = `${baseUrl}=dv`;
+                    video_url = `${baseUrl}=m22`;
                 }
             }
 
@@ -191,7 +204,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
                 const videoMeta = item[9]['76647426'];
                 if (Array.isArray(videoMeta) && typeof videoMeta[0] === 'number' && videoMeta[0] > 0) {
                     media_type = 'video';
-                    video_url = `${baseUrl}=dv`;
+                    video_url = `${baseUrl}=m22`;
                 }
             }
         } catch (e) {

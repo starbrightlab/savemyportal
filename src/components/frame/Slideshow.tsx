@@ -427,18 +427,17 @@ export default function Slideshow({ feed }: SlideshowProps) {
         };
     }, []);
 
-    // Reset video state and pause any playing video when the current item changes
+    // Reset video state when the current slide changes.  The previous
+    // <video> element is unmounted by React (we only render one for the
+    // current slide), but we still need to reset our playing flag and
+    // clean up the ref so the next video starts fresh.
     useEffect(() => {
-        const current = photos[currentIndex];
-        if (!current || current.media_type !== 'video') {
-            setIsVideoPlaying(false);
-        }
-        // Pause the previous video if it's still playing (e.g. in 'interval' mode)
-        if (videoRef.current && !current?.video_url) {
+        setIsVideoPlaying(false);
+        if (videoRef.current) {
             videoRef.current.pause();
             videoRef.current = null;
         }
-    }, [currentIndex, photos]);
+    }, [currentIndex]);
 
     useEffect(() => {
         if (photos.length <= 1 || sleeping) return;
@@ -556,7 +555,13 @@ export default function Slideshow({ feed }: SlideshowProps) {
         );
     }
 
-    /** Render a single photo/video layer (blurred bg + main content). */
+    /** Render a single photo/video layer (blurred bg + main content).
+     *  For the "next" (off-screen) layer, videos render as their thumbnail
+     *  image instead of a <video> element.  This prevents the browser from
+     *  eagerly downloading the next video while the current one is still
+     *  playing, which caused duplicate/wasteful fetches and playback jank.
+     *  The real <video> element is created when the slide becomes current.
+     */
     const renderPhotoLayer = (photo: Photo, isCurrent: boolean) => {
         const isVideo = photo.media_type === 'video' && photo.video_url;
 
@@ -568,45 +573,51 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     style={{ backgroundImage: `url("${photo.url.replace(/["\\]/g, '\\$&')}")` }}
                 />
 
-                {isVideo ? (
-                    /* Video element — streams directly from source (no proxy) */
+                {isVideo && isCurrent ? (
+                    /* Video element — only rendered for the active (current) slide */
                     <video
-                        ref={isCurrent ? videoRef : undefined}
+                        ref={videoRef}
                         src={photo.video_url!}
                         className="absolute inset-0 w-full h-full z-10"
                         style={{ objectFit }}
-                        autoPlay={isCurrent}
+                        autoPlay
                         muted
                         playsInline
+                        preload="auto"
                         onPlay={(e) => {
-                            if (isCurrent) {
-                                failCountRef.current = 0; // successful load — reset stale detection
-                                setIsVideoPlaying(true);
-                                // Unmute after autoplay starts (browsers require muted for autoplay)
-                                if (videoSound) {
-                                    (e.target as HTMLVideoElement).muted = false;
-                                }
+                            failCountRef.current = 0; // successful load — reset stale detection
+                            setIsVideoPlaying(true);
+                            // Unmute after autoplay starts (browsers require muted for autoplay)
+                            if (videoSound) {
+                                (e.target as HTMLVideoElement).muted = false;
                             }
                         }}
                         onEnded={() => {
-                            if (isCurrent) {
-                                setIsVideoPlaying(false);
-                                // In 'full' mode, advance when video ends
-                                // In 'interval' mode, the timer handles advancement
-                                if (videoBehavior === 'full') advance();
-                            }
+                            setIsVideoPlaying(false);
+                            // In 'full' mode, advance when video ends
+                            // In 'interval' mode, the timer handles advancement
+                            if (videoBehavior === 'full') advance();
                         }}
-                        onError={() => {
-                            if (isCurrent) {
-                                failCountRef.current++;
-                                maybeRescrape();
-                                setIsVideoPlaying(false);
-                                advance();
+                        onError={(e) => {
+                            const vid = e.target as HTMLVideoElement;
+                            // If the =m22 (720p) transcode 404'd (source video
+                            // is below 720p), retry once with =m18 (360p) which
+                            // covers virtually all video resolutions.
+                            if (vid.src.includes('=m22') && !vid.dataset.retried) {
+                                vid.dataset.retried = 'true';
+                                vid.src = vid.src.replace('=m22', '=m18');
+                                vid.load();
+                                return;
                             }
+                            failCountRef.current++;
+                            maybeRescrape();
+                            setIsVideoPlaying(false);
+                            advance();
                         }}
                     />
                 ) : (
-                    /* Image element — loaded directly from source CDN */
+                    /* Image element — used for photos AND as a placeholder for
+                       off-screen video slides (shows the video thumbnail) */
                     <img
                         src={photo.url}
                         alt="Frame Content"
