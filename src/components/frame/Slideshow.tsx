@@ -105,6 +105,19 @@ export default function Slideshow({ feed }: SlideshowProps) {
     const rescrapeInFlightRef = useRef(false);      // prevent concurrent re-scrapes
     const sourceIdsRef = useRef<string[]>([]);      // captured during loadPhotos for re-scrape
 
+    // Referrer Policy — inject a document-level <meta> tag so ALL subresource
+    // fetches (including <video src>) omit the Referer header.  The per-element
+    // referrerPolicy attribute on <video> is unreliable in Chrome 145+ which
+    // sends the full page origin anyway, causing googlevideo.com to reject the
+    // request with 403 Forbidden (the earl allowlist only permits Google domains).
+    useEffect(() => {
+        const meta = document.createElement('meta');
+        meta.name = 'referrer';
+        meta.content = 'no-referrer';
+        document.head.appendChild(meta);
+        return () => { document.head.removeChild(meta); };
+    }, []);
+
     // Wake Lock — keep the Portal screen alive while the slideshow runs
     useEffect(() => {
         let wakeLock: WakeLockSentinel | null = null;
@@ -589,28 +602,40 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
                 {isVideo && isCurrent ? (
                     /* Video element — only rendered for the active (current) slide.
-                       referrerPolicy="no-referrer" is CRITICAL: Google Photos =m22
-                       URLs redirect to googlevideo.com which checks Referer against
-                       an allowlist of Google domains.  Without no-referrer, the
-                       request sends Referer: https://savemyportal.com/ which triggers
-                       a 403 Forbidden + ERR_BLOCKED_BY_ORB in the browser. */
+                       The document-level <meta name="referrer" content="no-referrer">
+                       ensures googlevideo.com (Google Photos =m22 URLs) doesn't see
+                       our origin in the Referer header (which would cause 403).
+                       We also keep the per-element referrerPolicy as defense-in-depth.
+
+                       We call play() explicitly via the ref callback instead of relying
+                       on the autoPlay HTML attribute, which Chrome silently throttles
+                       after several consecutive video-to-video transitions.  The Promise
+                       returned by play() lets us detect and handle the block. */
                     <video
-                        ref={videoRef}
+                        ref={(el) => {
+                            videoRef.current = el;
+                            if (el) {
+                                el.play().catch(() => {
+                                    // Autoplay silently blocked by browser — skip
+                                    setIsVideoPlaying(false);
+                                    advance();
+                                });
+                            }
+                        }}
                         src={photo.video_url!}
                         className="absolute inset-0 w-full h-full z-10"
                         style={{ objectFit }}
-                        autoPlay
                         muted
                         playsInline
                         preload="auto"
                         // @ts-expect-error — referrerPolicy is valid on <video> per
-                        // the HTML spec but React's TS types omit it.  Essential to
-                        // prevent googlevideo.com from rejecting our Referer.
+                        // the HTML spec but React's TS types omit it.  Kept as
+                        // defense-in-depth alongside the document-level meta tag.
                         referrerPolicy="no-referrer"
                         onPlay={(e) => {
                             failCountRef.current = 0; // successful load — reset stale detection
                             setIsVideoPlaying(true);
-                            // Unmute after autoplay starts (browsers require muted for autoplay)
+                            // Unmute after play starts (browsers require muted for autoplay)
                             if (videoSound) {
                                 (e.target as HTMLVideoElement).muted = false;
                             }
