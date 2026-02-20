@@ -31,6 +31,7 @@ export default function Dashboard() {
     const [message, setMessage] = useState<Message | null>(null);
     const [showNewFeedInput, setShowNewFeedInput] = useState(false);
     const [newFeedName, setNewFeedName] = useState('');
+    const [addPhase, setAddPhase] = useState<'idle' | 'saving' | 'verifying'>('idle');
     const [showDangerZone, setShowDangerZone] = useState(false);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -87,6 +88,7 @@ export default function Dashboard() {
             const type = identifySourceType(url);
             if (!type) throw new Error('Invalid URL');
 
+            setAddPhase('saving');
             const { data: source, error } = await supabase
                 .from('sources')
                 .insert({ user_id: user?.id, url, type, status: 'pending' })
@@ -95,6 +97,7 @@ export default function Dashboard() {
             if (error) throw error;
 
             // Validate the source by scraping (doesn't store items — just confirms URL works)
+            setAddPhase('verifying');
             const response = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -106,23 +109,26 @@ export default function Dashboard() {
             return { source, count: scrapeData.count };
         },
         onSuccess: (data) => {
+            setAddPhase('idle');
             queryClient.invalidateQueries({ queryKey: ['sources'] });
             setNewUrl('');
             setMessage({ type: 'success', text: `Success! Found ${data.count || 0} photos.` });
         },
         onError: (error) => {
+            setAddPhase('idle');
             console.error('Add source error:', error);
-            setMessage({ type: 'error', text: 'Failed to add source. Please check the URL and try again.' });
+            setMessage({ type: 'error', text: (error as Error).message || 'Failed to add source. Please check the URL and try again.' });
         }
     });
 
     const syncSourceMutation = useMutation({
         mutationFn: async (id: string) => {
-            // Health check — confirm source is still accessible and report photo count
+            // Health check — confirm source is still accessible and report photo count.
+            // forceRefresh bypasses the server-side webstream cache so we always get live data.
             const response = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sourceIds: [id] }),
+                body: JSON.stringify({ sourceIds: [id], forceRefresh: true }),
             });
             const scrapeData = await response.json();
             if (!response.ok) throw new Error(scrapeData.error || 'Sync failed');
@@ -134,7 +140,7 @@ export default function Dashboard() {
         },
         onError: (error) => {
             console.error('Sync source error:', error);
-            setMessage({ type: 'error', text: 'Sync failed. The source may be temporarily unavailable.' });
+            setMessage({ type: 'error', text: (error as Error).message || 'Sync failed. The source may be temporarily unavailable.' });
         }
     });
 
@@ -275,11 +281,19 @@ export default function Dashboard() {
                                 disabled={addSourceMutation.isPending || !newUrl}
                                 className="px-5 py-3.5 bg-white/[0.06] active:bg-white/10 border border-white/10 text-white rounded-lg text-base font-semibold transition-all disabled:opacity-40"
                             >
-                                {addSourceMutation.isPending ? 'Adding...' : 'Add Source'}
+                                {addSourceMutation.isPending
+                                    ? (addPhase === 'verifying' ? 'Verifying album…' : 'Saving…')
+                                    : 'Add Source'}
                             </button>
                         </div>
                     ) : (
                     ''
+                    )}
+
+                    {addPhase === 'verifying' && (
+                        <div className="mb-4 text-base font-medium px-4 py-3 rounded-lg text-blue-400 bg-blue-500/10 border border-blue-500/20">
+                            Verifying album… Large albums may take up to a minute.
+                        </div>
                     )}
 
                     {message && (

@@ -167,10 +167,17 @@ const StepAddSource = ({ onNext, onSkip }: StepAddSourceProps) => {
                 )}
 
                 {status !== 'idle' && status !== 'success' && (
-                    <div className="flex items-center justify-center gap-2 text-blue-400 font-medium">
-                        <span className="w-2 h-2 bg-blue-400 rounded-full animate-ping" />
-                        {status === 'validating' && 'Saving source...'}
-                        {status === 'syncing' && 'Verifying album...'}
+                    <div className="flex flex-col items-center justify-center gap-1 text-blue-400 font-medium">
+                        <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-ping" />
+                            {status === 'validating' && 'Saving source...'}
+                            {status === 'syncing' && 'Verifying album...'}
+                        </div>
+                        {status === 'syncing' && (
+                            <span className="text-xs text-blue-300/60 font-normal">
+                                Large albums may take up to a minute
+                            </span>
+                        )}
                     </div>
                 )}
 

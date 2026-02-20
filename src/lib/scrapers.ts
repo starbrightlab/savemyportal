@@ -1,9 +1,35 @@
 const DEBUG = process.env.NODE_ENV === 'development';
 
-// iCloud can be slow for large albums (100+ photos); use a generous timeout.
-const ICLOUD_FETCH_TIMEOUT_MS = 60_000;
+// iCloud webstream scales roughly linearly with album size (~50s for 1000 photos).
+// Netlify imposes a hard 60s limit on synchronous functions, so we set the fetch
+// timeout to 55s to leave headroom for the 330 redirect + URL resolution + response.
+const ICLOUD_FETCH_TIMEOUT_MS = 55_000;
 // Max photo GUIDs per webasseturls request to avoid iCloud timeouts on huge albums.
-const ICLOUD_ASSET_BATCH_SIZE = 100;
+const ICLOUD_ASSET_BATCH_SIZE = 200;
+
+// ---------------------------------------------------------------------------
+// Webstream response cache — avoids re-fetching the same 50s iCloud response
+// when multiple consumers (slideshow, dashboard, onboarding) scrape the same
+// album in quick succession.
+// ---------------------------------------------------------------------------
+interface WebstreamCacheEntry {
+    data: any;           // Raw webstream JSON response ({ photos, items, locations, … })
+    currentHost: string; // Resolved iCloud partition host (after any 330 redirect)
+    cachedAt: number;    // Date.now() timestamp
+}
+
+const webstreamCache = new Map<string, WebstreamCacheEntry>();
+const WEBSTREAM_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Periodically evict expired entries so the Map doesn't grow unbounded.
+setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of webstreamCache) {
+        if (now - entry.cachedAt > WEBSTREAM_CACHE_TTL_MS) {
+            webstreamCache.delete(key);
+        }
+    }
+}, 10 * 60 * 1000).unref?.(); // .unref() so the timer doesn't keep the process alive
 
 export interface ScrapedItem {
     external_id: string;
@@ -177,7 +203,12 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
 }
 
 
-export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
+export interface ScrapeICloudOptions {
+    /** Skip the in-memory cache and fetch fresh data from iCloud. */
+    bypassCache?: boolean;
+}
+
+export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): Promise<ScrapedItem[]> {
     DEBUG && console.log("Scraping iCloud URL:", url);
 
     // Extract token from URL (e.g. https://www.icloud.com/sharedalbum/#B0NGrq0zwGrap7)
@@ -187,43 +218,76 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
     }
     const token = tokenMatch[1];
 
-    // Default partition to start with
-    const partition = 'p64';
-    let streamUrl = `https://${partition}-sharedstreams.icloud.com/${token}/sharedstreams/webstream`;
+    // 1. Check cache first (unless bypass requested)
+    let data: any;
+    let currentHost: string;
+    const cacheKey = token;
+    const cached = webstreamCache.get(cacheKey);
 
-    // Helper to fetch stream data
-    const fetchStream = async (streamEndpoint: string) => {
-        return await fetch(streamEndpoint, {
-            method: 'POST',
-            headers: {
-                'Origin': 'https://www.icloud.com',
-                'Content-Type': 'text/plain',
-                'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            body: JSON.stringify({ streamCtag: null }),
-            signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
-        });
-    };
+    if (!options?.bypassCache && cached && (Date.now() - cached.cachedAt < WEBSTREAM_CACHE_TTL_MS)) {
+        DEBUG && console.log(`webstream cache HIT for token ${token} (age: ${Math.round((Date.now() - cached.cachedAt) / 1000)}s)`);
+        data = cached.data;
+        currentHost = cached.currentHost;
+    } else {
+        if (options?.bypassCache && cached) {
+            webstreamCache.delete(cacheKey);
+            DEBUG && console.log(`webstream cache BYPASSED for token ${token}`);
+        }
 
-    let response = await fetchStream(streamUrl);
-    let currentHost = `${partition}-sharedstreams.icloud.com`;
+        // Default partition to start with
+        const partition = 'p64';
+        let streamUrl = `https://${partition}-sharedstreams.icloud.com/${token}/sharedstreams/webstream`;
 
-    // Handle 330 Redirect (wrong partition)
-    if (response.status === 330 || (response.status >= 300 && response.status < 400)) {
-        const newHost = response.headers.get('X-Apple-MMe-Host');
-        if (newHost) {
-            DEBUG && console.log(`Redirecting to new partition host: ${newHost}`);
-            currentHost = newHost;
-            streamUrl = `https://${newHost}/${token}/sharedstreams/webstream`;
-            response = await fetchStream(streamUrl);
+        // Helper to fetch stream data
+        const fetchStream = async (streamEndpoint: string) => {
+            try {
+                return await fetch(streamEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Origin': 'https://www.icloud.com',
+                        'Content-Type': 'text/plain',
+                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    },
+                    body: JSON.stringify({ streamCtag: null }),
+                    signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
+                });
+            } catch (err: any) {
+                if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+                    throw new Error(
+                        'This album is too large to load right now. Try using a smaller album with fewer photos.'
+                    );
+                }
+                throw err;
+            }
+        };
+
+        let response = await fetchStream(streamUrl);
+        currentHost = `${partition}-sharedstreams.icloud.com`;
+
+        // Handle 330 Redirect (wrong partition)
+        if (response.status === 330 || (response.status >= 300 && response.status < 400)) {
+            const newHost = response.headers.get('X-Apple-MMe-Host');
+            if (newHost) {
+                DEBUG && console.log(`Redirecting to new partition host: ${newHost}`);
+                currentHost = newHost;
+                streamUrl = `https://${newHost}/${token}/sharedstreams/webstream`;
+                response = await fetchStream(streamUrl);
+            }
+        }
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch iCloud stream: ${response.status}`);
+        }
+
+        data = await response.json();
+
+        // Populate cache on success (only if we got photos — empty responses aren't worth caching)
+        if (data.photos && Array.isArray(data.photos) && data.photos.length > 0) {
+            webstreamCache.set(cacheKey, { data, currentHost, cachedAt: Date.now() });
+            DEBUG && console.log(`webstream cache SET for token ${token} (${data.photos.length} photos)`);
         }
     }
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch iCloud stream: ${response.status}`);
-    }
-
-    const data = await response.json();
     const photos = data.photos;
 
     if (!photos || !Array.isArray(photos)) {
@@ -233,42 +297,73 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
 
     DEBUG && console.log(`Found ${photos.length} raw photos in stream.`);
 
-    // 2. Fetch Asset URLs (batched for large albums)
-    const photoGuids = photos.map((p: any) => p.photoGuid);
-    const assetUrlEndpoint = `https://${currentHost}/${token}/sharedstreams/webasseturls`;
+    // 2. Resolve asset URLs
+    // The webstream response often already includes items/locations, so use those
+    // first and only call webasseturls for any unresolved checksums.
+    const locations: Record<string, any> = { ...(data.locations || {}) };
+    const items: Record<string, any> = { ...(data.items || {}) };
 
-    DEBUG && console.log(`Fetching asset URLs from: ${assetUrlEndpoint} (${photoGuids.length} photos in batches of ${ICLOUD_ASSET_BATCH_SIZE})`);
+    DEBUG && console.log(`webstream included ${Object.keys(items).length} items and ${Object.keys(locations).length} locations inline.`);
 
-    const locations: Record<string, any> = {};
-    const items: Record<string, any> = {};
-
-    for (let i = 0; i < photoGuids.length; i += ICLOUD_ASSET_BATCH_SIZE) {
-        const batch = photoGuids.slice(i, i + ICLOUD_ASSET_BATCH_SIZE);
-        DEBUG && console.log(`  Batch ${Math.floor(i / ICLOUD_ASSET_BATCH_SIZE) + 1}: ${batch.length} GUIDs`);
-
-        const assetResponse = await fetch(assetUrlEndpoint, {
-            method: 'POST',
-            headers: {
-                'Origin': 'https://www.icloud.com',
-                'Content-Type': 'text/plain',
-                'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            },
-            body: JSON.stringify({ photoGuids: batch }),
-            signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
-        });
-
-        if (!assetResponse.ok) {
-            throw new Error(`Failed to fetch asset URLs: ${assetResponse.status}`);
+    // Collect all checksums we need and figure out which are missing
+    const allChecksums = new Set<string>();
+    for (const photo of photos) {
+        const derivs = photo.derivatives || {};
+        for (const key of Object.keys(derivs)) {
+            if (derivs[key].checksum) allChecksums.add(derivs[key].checksum);
         }
+    }
+    const missingGuids: string[] = [];
+    for (const photo of photos) {
+        const derivs = photo.derivatives || {};
+        const hasUnresolved = Object.keys(derivs).some(k => derivs[k].checksum && !items[derivs[k].checksum]);
+        if (hasUnresolved) missingGuids.push(photo.photoGuid);
+    }
 
-        const assetData = await assetResponse.json();
+    if (missingGuids.length > 0) {
+        const assetUrlEndpoint = `https://${currentHost}/${token}/sharedstreams/webasseturls`;
+        DEBUG && console.log(`Fetching asset URLs for ${missingGuids.length} unresolved photos (batches of ${ICLOUD_ASSET_BATCH_SIZE})`);
 
-        if (!assetData.locations || !assetData.items) {
-            console.warn("Asset response missing locations or items:", Object.keys(assetData));
+        for (let i = 0; i < missingGuids.length; i += ICLOUD_ASSET_BATCH_SIZE) {
+            const batch = missingGuids.slice(i, i + ICLOUD_ASSET_BATCH_SIZE);
+            DEBUG && console.log(`  Batch ${Math.floor(i / ICLOUD_ASSET_BATCH_SIZE) + 1}: ${batch.length} GUIDs`);
+
+            let assetResponse: Response;
+            try {
+                assetResponse = await fetch(assetUrlEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Origin': 'https://www.icloud.com',
+                        'Content-Type': 'text/plain',
+                        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    },
+                    body: JSON.stringify({ photoGuids: batch }),
+                    signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
+                });
+            } catch (err: any) {
+                if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+                    throw new Error(
+                        'This album is too large to load right now. Try using a smaller album with fewer photos.'
+                    );
+                }
+                throw err;
+            }
+
+            if (!assetResponse.ok) {
+                throw new Error(`Failed to fetch asset URLs: ${assetResponse.status}`);
+            }
+
+            const assetData = await assetResponse.json();
+
+            if (!assetData.locations || !assetData.items) {
+                console.warn("Asset response missing locations or items:", Object.keys(assetData));
+            }
+
+            Object.assign(locations, assetData.locations || {});
+            Object.assign(items, assetData.items || {});
         }
-
-        Object.assign(locations, assetData.locations || {});
-        Object.assign(items, assetData.items || {});
+    } else {
+        DEBUG && console.log('All asset URLs resolved from webstream — skipping webasseturls.');
     }
 
     // Map to common format

@@ -331,7 +331,7 @@ export default function Slideshow({ feed }: SlideshowProps) {
             const response = await fetch('/api/scrape-urls', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sourceIds: sourceIdsRef.current }),
+                body: JSON.stringify({ sourceIds: sourceIdsRef.current, forceRefresh: true }),
             });
 
             if (!response.ok) throw new Error(`Re-scrape failed: ${response.status}`);
@@ -545,8 +545,11 @@ export default function Slideshow({ feed }: SlideshowProps) {
 
     if (loading) {
         return (
-            <div className="absolute inset-0 w-full h-full bg-deep-space flex items-center justify-center">
+            <div className="absolute inset-0 w-full h-full bg-deep-space flex flex-col items-center justify-center gap-4">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-electric-blue" />
+                <p className="text-white/40 text-sm font-light animate-pulse">
+                    Loading your photos…
+                </p>
             </div>
         );
     }

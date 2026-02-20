@@ -4,8 +4,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { scrapeGooglePhotos, scrapeICloud } from '@/lib/scrapers';
 import { checkRateLimit } from '@/lib/rate-limit';
 
-// Allow up to 120s for large iCloud albums (default is ~10-15s on Vercel).
-export const maxDuration = 120;
+// Netlify has a hard 60s limit on synchronous functions (not configurable).
+// This Vercel-specific export is kept for local dev / future platform migration.
+export const maxDuration = 60;
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -35,6 +36,7 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json();
         const sourceIds: string[] = body.sourceIds;
+        const forceRefresh: boolean = body.forceRefresh === true;
 
         if (!sourceIds || !Array.isArray(sourceIds) || sourceIds.length === 0) {
             return NextResponse.json({ error: 'Missing or empty sourceIds array' }, { status: 400 });
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
                 if (source.type === 'google_photos') {
                     items = await scrapeGooglePhotos(source.url);
                 } else if (source.type === 'icloud') {
-                    items = await scrapeICloud(source.url);
+                    items = await scrapeICloud(source.url, { bypassCache: forceRefresh });
                 } else {
                     console.warn(`Unknown source type: ${source.type}`);
                     return { source_id: source.id, items: [], error: null };
@@ -154,7 +156,20 @@ export async function POST(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Scrape URLs Error:', (error as Error).message || error);
-        return NextResponse.json({ error: 'Failed to load photos. Please try again.' }, { status: 500 });
+        const message = (error as Error).message || '';
+        console.error('Scrape URLs Error:', message || error);
+
+        // Surface known, user-actionable messages directly
+        const userFacingPatterns = [
+            'too large to load',
+            'Invalid iCloud URL',
+            'No photos found',
+        ];
+        const isUserFacing = userFacingPatterns.some(p => message.includes(p));
+
+        return NextResponse.json(
+            { error: isUserFacing ? message : 'Failed to load photos. Please try again.' },
+            { status: 500 },
+        );
     }
 }
