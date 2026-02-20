@@ -13,6 +13,7 @@ import ProBadge from '@/components/ProBadge';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { parseJsonResponse } from '@/lib/fetch-helpers';
 import { useFeeds, useCreateFeed, useDeleteFeed } from '@/hooks/useFeeds';
 import { useAllSources, useDeleteSource } from '@/hooks/useSources';
 import type { Feed } from '@/types/feed';
@@ -103,7 +104,7 @@ export default function Dashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sourceIds: [source.id] }),
             });
-            const scrapeData = await response.json();
+            const scrapeData = await parseJsonResponse(response);
             if (!response.ok) throw new Error(scrapeData.error || 'Scrape failed');
 
             return { source, count: scrapeData.count };
@@ -130,7 +131,7 @@ export default function Dashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sourceIds: [id], forceRefresh: true }),
             });
-            const scrapeData = await response.json();
+            const scrapeData = await parseJsonResponse(response);
             if (!response.ok) throw new Error(scrapeData.error || 'Sync failed');
             return scrapeData;
         },

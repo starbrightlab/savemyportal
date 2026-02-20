@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSessionKeepAlive } from '@/hooks/useSessionKeepAlive';
+import { parseJsonResponse } from '@/lib/fetch-helpers';
 import type { Feed, TransitionType, VideoBehavior, ClockPosition, ClockSize } from '@/types/feed';
 
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -246,12 +247,12 @@ export default function Slideshow({ feed }: SlideshowProps) {
                     body: JSON.stringify({ sourceIds }),
                 });
 
+                const data = await parseJsonResponse(response);
                 if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(errData.error || `Scrape failed: ${response.status}`);
+                    throw new Error(data.error || `Scrape failed: ${response.status}`);
                 }
 
-                const { items } = await response.json();
+                const { items } = data;
 
                 if (items && items.length > 0) {
                     const processedPhotos: Photo[] = items.map((item: any) => {
@@ -334,9 +335,10 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 body: JSON.stringify({ sourceIds: sourceIdsRef.current, forceRefresh: true }),
             });
 
-            if (!response.ok) throw new Error(`Re-scrape failed: ${response.status}`);
+            const rescrapeData = await parseJsonResponse(response);
+            if (!response.ok) throw new Error(rescrapeData.error || `Re-scrape failed: ${response.status}`);
 
-            const { items } = await response.json();
+            const { items } = rescrapeData;
 
             if (items && items.length > 0) {
                 const processedPhotos: Photo[] = items.map((item: any) => {

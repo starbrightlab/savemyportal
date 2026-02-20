@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { parseJsonResponse } from '@/lib/fetch-helpers';
 
 interface StepAddSourceProps {
     onNext: (data: { sourceId: string }) => void;
@@ -45,7 +46,7 @@ const StepAddSource = ({ onNext, onSkip }: StepAddSourceProps) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sourceIds: [sourceData.id] }),
             });
-            const scrapeResult = await scrapeResponse.json();
+            const scrapeResult = await parseJsonResponse(scrapeResponse);
             if (!scrapeResponse.ok) {
                 throw new Error(scrapeResult.error || 'Validation failed');
             }
