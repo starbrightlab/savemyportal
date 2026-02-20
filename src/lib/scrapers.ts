@@ -183,6 +183,17 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
                     video_url = `${baseUrl}=dv`;
                 }
             }
+
+            // Heuristic 3: item[9] metadata object contains key "76647426" which
+            // holds video-specific data (duration at [0] in ms, dimensions, etc.).
+            // This key is absent for photos.
+            if (media_type === 'image' && item[9] && typeof item[9] === 'object') {
+                const videoMeta = item[9]['76647426'];
+                if (Array.isArray(videoMeta) && typeof videoMeta[0] === 'number' && videoMeta[0] > 0) {
+                    media_type = 'video';
+                    video_url = `${baseUrl}=dv`;
+                }
+            }
         } catch (e) {
             console.warn('Video detection failed for item, defaulting to image:', e);
         }
