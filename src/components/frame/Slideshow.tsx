@@ -574,7 +574,12 @@ export default function Slideshow({ feed }: SlideshowProps) {
                 />
 
                 {isVideo && isCurrent ? (
-                    /* Video element — only rendered for the active (current) slide */
+                    /* Video element — only rendered for the active (current) slide.
+                       referrerPolicy="no-referrer" is CRITICAL: Google Photos =m22
+                       URLs redirect to googlevideo.com which checks Referer against
+                       an allowlist of Google domains.  Without no-referrer, the
+                       request sends Referer: https://savemyportal.com/ which triggers
+                       a 403 Forbidden + ERR_BLOCKED_BY_ORB in the browser. */
                     <video
                         ref={videoRef}
                         src={photo.video_url!}
@@ -584,6 +589,10 @@ export default function Slideshow({ feed }: SlideshowProps) {
                         muted
                         playsInline
                         preload="auto"
+                        // @ts-expect-error — referrerPolicy is valid on <video> per
+                        // the HTML spec but React's TS types omit it.  Essential to
+                        // prevent googlevideo.com from rejecting our Referer.
+                        referrerPolicy="no-referrer"
                         onPlay={(e) => {
                             failCountRef.current = 0; // successful load — reset stale detection
                             setIsVideoPlaying(true);

@@ -170,14 +170,21 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
         // instead of =dv (raw download).  =dv redirects (302) to a separate
         // video-downloads host, serves the original container (often huge MOV
         // files), has no Accept-Ranges support, and sets Content-Disposition:
-        // attachment — all of which break <video> streaming.  =m22 serves a
-        // transcoded MP4 directly (no redirect), supports Accept-Ranges: bytes
-        // for seeking, and is typically ~20× smaller than =dv.
+        // attachment — all of which break <video> streaming.  =m22 redirects
+        // to googlevideo.com which serves a transcoded MP4 with
+        // Accept-Ranges: bytes for seeking, and is typically ~20× smaller.
+        //
+        // IMPORTANT: The googlevideo.com endpoint checks the Referer header
+        // against an allowlist (earl param) that only includes Google domains.
+        // The <video> element MUST set referrerPolicy="no-referrer" to omit
+        // the Referer header, otherwise the request returns 403 Forbidden.
         //
         // Why =m22 over =m37 (1080p)?  Google only generates transcodes up to
         // the source resolution.  =m37 returns 404 for videos below 1080p
         // (e.g. 720×1280 phone videos), while =m22 works reliably for any
         // source ≥ 720p — which covers virtually all modern phone/camera video.
+        // The Slideshow component also has an onError fallback from =m22 to
+        // =m18 (360p) for the rare sub-720p edge case.
         let media_type: 'image' | 'video' = 'image';
         let video_url: string | null = null;
         try {
@@ -402,24 +409,38 @@ export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): 
             isVideo = photo.mediaAssetType === 'video';
         } catch { /* default to image */ }
 
-        // Find the best (largest) derivative and optionally the video derivative
+        // Find the best (largest) image derivative and optionally the video derivative.
+        // For video items we must separate these: the image derivative is used for the
+        // thumbnail / blurred background, while the video derivative provides the
+        // playback URL.  Without this split, the "best by width" logic can pick the
+        // video file as the thumbnail when the video is wider than the poster image,
+        // which breaks <img> and CSS background-image rendering.
         let best: any = null;
 
         const derivKeys = Object.keys(derivatives);
         for (const key of derivKeys) {
             const d = derivatives[key];
             // Video derivative detection — wrapped safely
+            let isVideoDeriv = false;
             if (isVideo && d.fileType) {
                 try {
                     if (d.fileType.includes('movie') || d.fileType.includes('video') || d.fileType.includes('mp4')) {
                         videoDeriv = d;
+                        isVideoDeriv = true;
                     }
                 } catch { /* ignore */ }
             }
-            if (!best || parseInt(d.width || '0') > parseInt(best.width || '0')) {
-                best = d;
+            // Only consider non-video derivatives for the thumbnail
+            if (!isVideoDeriv) {
+                if (!best || parseInt(d.width || '0') > parseInt(best.width || '0')) {
+                    best = d;
+                }
             }
         }
+
+        // If every derivative was a video (unlikely, but defensive), fall back to
+        // the video derivative itself so we don't return null.
+        if (!best && videoDeriv) best = videoDeriv;
 
         if (!best) return null;
 
