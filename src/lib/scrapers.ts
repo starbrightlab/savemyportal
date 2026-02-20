@@ -41,7 +41,12 @@ export interface ScrapedItem {
     video_url: string | null;
 }
 
-export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
+export interface ScrapeResult {
+    items: ScrapedItem[];
+    albumName: string | null;
+}
+
+export async function scrapeGooglePhotos(url: string): Promise<ScrapeResult> {
     DEBUG && console.log("Scraping Google Photos URL:", url);
 
     const response = await fetch(url, {
@@ -56,6 +61,15 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
 
     const html = await response.text();
     DEBUG && console.log(`Fetched HTML length: ${html.length}`);
+
+    // Extract album name from <title>Album Name - Google Photos</title>
+    let albumName: string | null = null;
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    if (titleMatch) {
+        const raw = titleMatch[1].replace(/\s*-\s*Google Photos\s*$/, '').trim();
+        if (raw && raw !== 'Google Photos') albumName = raw;
+    }
+    DEBUG && console.log(`Album name: ${albumName}`);
 
     // Strategy: robust manual parsing
     const callbackRegex = /AF_initDataCallback\s*\(/g;
@@ -148,7 +162,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
 
     if (foundItems.length === 0) {
         console.warn("Regex failed to find any valid photo data.");
-        return [];
+        return { items: [], albumName };
     }
 
     const parsedItems: ScrapedItem[] = [];
@@ -230,7 +244,7 @@ export async function scrapeGooglePhotos(url: string): Promise<ScrapedItem[]> {
     }
 
     DEBUG && console.log(`Total parsed items: ${parsedItems.length}`);
-    return parsedItems;
+    return { items: parsedItems, albumName };
 }
 
 
@@ -239,7 +253,7 @@ export interface ScrapeICloudOptions {
     bypassCache?: boolean;
 }
 
-export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): Promise<ScrapedItem[]> {
+export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): Promise<ScrapeResult> {
     DEBUG && console.log("Scraping iCloud URL:", url);
 
     // Extract token from URL (e.g. https://www.icloud.com/sharedalbum/#B0NGrq0zwGrap7)
@@ -319,11 +333,15 @@ export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): 
         }
     }
 
+    // Extract album name from webstream response
+    const albumName: string | null = (typeof data.streamName === 'string' && data.streamName) ? data.streamName : null;
+    DEBUG && console.log(`Album name: ${albumName}`);
+
     const photos = data.photos;
 
     if (!photos || !Array.isArray(photos)) {
         DEBUG && console.log("No photos found in iCloud stream");
-        return [];
+        return { items: [], albumName };
     }
 
     DEBUG && console.log(`Found ${photos.length} raw photos in stream.`);
@@ -526,5 +544,5 @@ export async function scrapeICloud(url: string, options?: ScrapeICloudOptions): 
     }).filter((item: any): item is ScrapedItem => item !== null);
 
     DEBUG && console.log(`Successfully resolved URLs for ${parsedItems.length} photos.`);
-    return parsedItems;
+    return { items: parsedItems, albumName };
 }

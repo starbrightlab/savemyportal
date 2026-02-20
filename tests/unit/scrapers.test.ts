@@ -24,8 +24,8 @@ describe('scrapeGooglePhotos', () => {
 
         const result = await scrapeGooglePhotos('https://photos.app.goo.gl/test');
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toEqual({
+        expect(result.items).toHaveLength(1);
+        expect(result.items[0]).toEqual({
             external_id: 'photo1',
             url: 'https://lh3.googleusercontent.com/photo1',
             width: 100,
@@ -43,7 +43,7 @@ describe('scrapeGooglePhotos', () => {
         });
 
         const result = await scrapeGooglePhotos('https://photos.app.goo.gl/empty');
-        expect(result).toEqual([]);
+        expect(result.items).toEqual([]);
     });
 
     it('should throw error on failed fetch', async () => {
@@ -87,8 +87,8 @@ describe('scrapeICloud', () => {
 
         const result = await scrapeICloud('https://www.icloud.com/sharedalbum/#B0N12345');
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toMatchObject({
+        expect(result.items).toHaveLength(1);
+        expect(result.items[0]).toMatchObject({
             external_id: 'p1',
             url: 'https://cvws.icloud-content.com/image.jpg',
             width: 100,

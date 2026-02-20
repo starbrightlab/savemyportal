@@ -67,18 +67,18 @@ export async function POST(request: NextRequest) {
             sources.map(async (source) => {
                 // Scrape source (logging handled in scraper module)
 
-                let items: Awaited<ReturnType<typeof scrapeGooglePhotos>> = [];
+                let result: Awaited<ReturnType<typeof scrapeGooglePhotos>>;
 
                 if (source.type === 'google_photos') {
-                    items = await scrapeGooglePhotos(source.url);
+                    result = await scrapeGooglePhotos(source.url);
                 } else if (source.type === 'icloud') {
-                    items = await scrapeICloud(source.url, { bypassCache: forceRefresh });
+                    result = await scrapeICloud(source.url, { bypassCache: forceRefresh });
                 } else {
                     console.warn(`Unknown source type: ${source.type}`);
-                    return { source_id: source.id, items: [], error: null };
+                    return { source_id: source.id, items: [], albumName: null, error: null };
                 }
 
-                return { source_id: source.id, items, error: null };
+                return { source_id: source.id, items: result.items, albumName: result.albumName, error: null };
             })
         );
 
@@ -123,15 +123,17 @@ export async function POST(request: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
 
-        // Update all successfully scraped sources
+        // Update all successfully scraped sources (including album name if discovered)
         for (const result of scrapeResults) {
             if (result.status === 'fulfilled') {
-                const { source_id } = result.value;
-                serviceClient.from('sources').update({
+                const { source_id, albumName } = result.value;
+                const updates: Record<string, any> = {
                     last_scraped_at: new Date().toISOString(),
                     status: 'active',
                     error_message: null,
-                }).eq('id', source_id).then(
+                };
+                if (albumName) updates.name = albumName;
+                serviceClient.from('sources').update(updates).eq('id', source_id).then(
                     () => {},
                     (err) => console.error(`Failed to update source status for ${source_id}:`, err)
                 );

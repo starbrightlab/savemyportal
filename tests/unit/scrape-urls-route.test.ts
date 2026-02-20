@@ -139,17 +139,20 @@ describe('POST /api/scrape-urls', () => {
         setupAuth({ id: 'user-1' });
         setupSources([{ id: 'src-1', type: 'google_photos', url: 'https://photos.app.goo.gl/test', user_id: 'user-1' }]);
 
-        mockScrapeGoogle.mockResolvedValue([
-            {
-                external_id: 'photo-1',
-                url: 'https://lh3.googleusercontent.com/photo1',
-                width: 1920,
-                height: 1080,
-                captured_at: new Date('2024-01-01'),
-                media_type: 'image',
-                video_url: null,
-            },
-        ]);
+        mockScrapeGoogle.mockResolvedValue({
+            items: [
+                {
+                    external_id: 'photo-1',
+                    url: 'https://lh3.googleusercontent.com/photo1',
+                    width: 1920,
+                    height: 1080,
+                    captured_at: new Date('2024-01-01'),
+                    media_type: 'image',
+                    video_url: null,
+                },
+            ],
+            albumName: 'Test Album',
+        });
 
         const res = await POST(makeRequest({ sourceIds: ['src-1'] }));
         const data = await res.json();
@@ -170,17 +173,20 @@ describe('POST /api/scrape-urls', () => {
         setupAuth({ id: 'user-1' });
         setupSources([{ id: 'src-2', type: 'icloud', url: 'https://www.icloud.com/sharedalbum/#ABC123', user_id: 'user-1' }]);
 
-        mockScrapeICloud.mockResolvedValue([
-            {
-                external_id: 'icloud-1',
-                url: 'https://cvws.icloud-content.com/image.jpg',
-                width: 800,
-                height: 600,
-                captured_at: new Date('2024-06-15'),
-                media_type: 'image',
-                video_url: null,
-            },
-        ]);
+        mockScrapeICloud.mockResolvedValue({
+            items: [
+                {
+                    external_id: 'icloud-1',
+                    url: 'https://cvws.icloud-content.com/image.jpg',
+                    width: 800,
+                    height: 600,
+                    captured_at: new Date('2024-06-15'),
+                    media_type: 'image',
+                    video_url: null,
+                },
+            ],
+            albumName: 'Dad Cam',
+        });
 
         const res = await POST(makeRequest({ sourceIds: ['src-2'] }));
         const data = await res.json();
@@ -188,7 +194,7 @@ describe('POST /api/scrape-urls', () => {
         expect(res.status).toBe(200);
         expect(data.count).toBe(1);
         expect(data.items[0].source_id).toBe('src-2');
-        expect(mockScrapeICloud).toHaveBeenCalledWith('https://www.icloud.com/sharedalbum/#ABC123');
+        expect(mockScrapeICloud).toHaveBeenCalledWith('https://www.icloud.com/sharedalbum/#ABC123', { bypassCache: false });
     });
 
     it('should scrape multiple sources in parallel', async () => {
@@ -198,12 +204,18 @@ describe('POST /api/scrape-urls', () => {
             { id: 'src-2', type: 'icloud', url: 'https://www.icloud.com/sharedalbum/#B', user_id: 'user-1' },
         ]);
 
-        mockScrapeGoogle.mockResolvedValue([
-            { external_id: 'g1', url: 'https://lh3.googleusercontent.com/g1', width: 100, height: 100, captured_at: new Date(), media_type: 'image', video_url: null },
-        ]);
-        mockScrapeICloud.mockResolvedValue([
-            { external_id: 'i1', url: 'https://cvws.icloud-content.com/i1.jpg', width: 200, height: 200, captured_at: new Date(), media_type: 'image', video_url: null },
-        ]);
+        mockScrapeGoogle.mockResolvedValue({
+            items: [
+                { external_id: 'g1', url: 'https://lh3.googleusercontent.com/g1', width: 100, height: 100, captured_at: new Date(), media_type: 'image', video_url: null },
+            ],
+            albumName: 'Google Album',
+        });
+        mockScrapeICloud.mockResolvedValue({
+            items: [
+                { external_id: 'i1', url: 'https://cvws.icloud-content.com/i1.jpg', width: 200, height: 200, captured_at: new Date(), media_type: 'image', video_url: null },
+            ],
+            albumName: 'iCloud Album',
+        });
 
         const res = await POST(makeRequest({ sourceIds: ['src-1', 'src-2'] }));
         const data = await res.json();
@@ -221,9 +233,12 @@ describe('POST /api/scrape-urls', () => {
         ]);
 
         mockScrapeGoogle
-            .mockResolvedValueOnce([
-                { external_id: 'g1', url: 'https://lh3.googleusercontent.com/g1', width: 100, height: 100, captured_at: new Date(), media_type: 'image', video_url: null },
-            ])
+            .mockResolvedValueOnce({
+                items: [
+                    { external_id: 'g1', url: 'https://lh3.googleusercontent.com/g1', width: 100, height: 100, captured_at: new Date(), media_type: 'image', video_url: null },
+                ],
+                albumName: null,
+            })
             .mockRejectedValueOnce(new Error('Album not found'));
 
         const res = await POST(makeRequest({ sourceIds: ['src-1', 'src-2'] }));
@@ -251,17 +266,20 @@ describe('POST /api/scrape-urls', () => {
         setupAuth({ id: 'user-1' });
         setupSources([{ id: 'src-1', type: 'google_photos', url: 'https://photos.app.goo.gl/test', user_id: 'user-1' }]);
 
-        mockScrapeGoogle.mockResolvedValue([
-            {
-                external_id: 'vid-1',
-                url: 'https://lh3.googleusercontent.com/vid1',
-                width: 1920,
-                height: 1080,
-                captured_at: new Date('2024-03-01'),
-                media_type: 'video',
-                video_url: 'https://lh3.googleusercontent.com/vid1=dv',
-            },
-        ]);
+        mockScrapeGoogle.mockResolvedValue({
+            items: [
+                {
+                    external_id: 'vid-1',
+                    url: 'https://lh3.googleusercontent.com/vid1',
+                    width: 1920,
+                    height: 1080,
+                    captured_at: new Date('2024-03-01'),
+                    media_type: 'video',
+                    video_url: 'https://lh3.googleusercontent.com/vid1=dv',
+                },
+            ],
+            albumName: null,
+        });
 
         const res = await POST(makeRequest({ sourceIds: ['src-1'] }));
         const data = await res.json();

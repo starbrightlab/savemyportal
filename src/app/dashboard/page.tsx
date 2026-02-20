@@ -259,11 +259,11 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* ─── Sources ─── */}
+                {/* ─── Albums ─── */}
                 <section>
                     <div className="mb-4">
-                        <h2 className="text-lg font-bold text-white">Sources</h2>
-                        <p className="text-base text-gray-300 mt-0.5">Connected photo albums. Add a source, then assign it to one or more feeds.</p>
+                        <h2 className="text-lg font-bold text-white">Albums</h2>
+                        <p className="text-base text-gray-300 mt-0.5">Connected photo albums. Add an album, then assign it to one or more feeds.</p>
                     </div>
 
                     {/* Add Source Input */}
@@ -284,7 +284,7 @@ export default function Dashboard() {
                             >
                                 {addSourceMutation.isPending
                                     ? (addPhase === 'verifying' ? 'Verifying album…' : 'Saving…')
-                                    : 'Add Source'}
+                                    : 'Add Album'}
                             </button>
                         </div>
                     ) : (
@@ -309,7 +309,7 @@ export default function Dashboard() {
 
                     {sources.length === 0 ? (
                         <div className="text-center py-10 text-base text-gray-300 border border-dashed border-white/10 rounded-xl bg-white/[0.02]">
-                            No sources connected yet.
+                            No albums connected yet.
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
