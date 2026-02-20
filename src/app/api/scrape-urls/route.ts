@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { scrapeGooglePhotos, scrapeICloud } from '@/lib/scrapers';
 import { checkRateLimit } from '@/lib/rate-limit';
+
+// Allow up to 120s for large iCloud albums (default is ~10-15s on Vercel).
+export const maxDuration = 120;
 import type { Database } from '@/lib/database.types';
 
 /**

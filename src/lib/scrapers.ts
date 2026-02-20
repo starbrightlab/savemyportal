@@ -1,5 +1,10 @@
 const DEBUG = process.env.NODE_ENV === 'development';
 
+// iCloud can be slow for large albums (100+ photos); use a generous timeout.
+const ICLOUD_FETCH_TIMEOUT_MS = 60_000;
+// Max photo GUIDs per webasseturls request to avoid iCloud timeouts on huge albums.
+const ICLOUD_ASSET_BATCH_SIZE = 100;
+
 export interface ScrapedItem {
     external_id: string;
     url: string;
@@ -195,7 +200,8 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
                 'Content-Type': 'text/plain',
                 'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             },
-            body: JSON.stringify({ streamCtag: null })
+            body: JSON.stringify({ streamCtag: null }),
+            signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
         });
     };
 
@@ -227,32 +233,42 @@ export async function scrapeICloud(url: string): Promise<ScrapedItem[]> {
 
     DEBUG && console.log(`Found ${photos.length} raw photos in stream.`);
 
-    // 2. Fetch Asset URLs
+    // 2. Fetch Asset URLs (batched for large albums)
     const photoGuids = photos.map((p: any) => p.photoGuid);
     const assetUrlEndpoint = `https://${currentHost}/${token}/sharedstreams/webasseturls`;
 
-    DEBUG && console.log(`Fetching asset URLs from: ${assetUrlEndpoint}`);
+    DEBUG && console.log(`Fetching asset URLs from: ${assetUrlEndpoint} (${photoGuids.length} photos in batches of ${ICLOUD_ASSET_BATCH_SIZE})`);
 
-    const assetResponse = await fetch(assetUrlEndpoint, {
-        method: 'POST',
-        headers: {
-            'Origin': 'https://www.icloud.com',
-            'Content-Type': 'text/plain',
-            'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        },
-        body: JSON.stringify({ photoGuids: photoGuids })
-    });
+    const locations: Record<string, any> = {};
+    const items: Record<string, any> = {};
 
-    if (!assetResponse.ok) {
-        throw new Error(`Failed to fetch asset URLs: ${assetResponse.status}`);
-    }
+    for (let i = 0; i < photoGuids.length; i += ICLOUD_ASSET_BATCH_SIZE) {
+        const batch = photoGuids.slice(i, i + ICLOUD_ASSET_BATCH_SIZE);
+        DEBUG && console.log(`  Batch ${Math.floor(i / ICLOUD_ASSET_BATCH_SIZE) + 1}: ${batch.length} GUIDs`);
 
-    const assetData = await assetResponse.json();
-    const locations = assetData.locations || {};
-    const items = assetData.items || {};
+        const assetResponse = await fetch(assetUrlEndpoint, {
+            method: 'POST',
+            headers: {
+                'Origin': 'https://www.icloud.com',
+                'Content-Type': 'text/plain',
+                'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            body: JSON.stringify({ photoGuids: batch }),
+            signal: AbortSignal.timeout(ICLOUD_FETCH_TIMEOUT_MS),
+        });
 
-    if (!assetData.locations || !assetData.items) {
-        console.warn("Asset response missing locations or items:", Object.keys(assetData));
+        if (!assetResponse.ok) {
+            throw new Error(`Failed to fetch asset URLs: ${assetResponse.status}`);
+        }
+
+        const assetData = await assetResponse.json();
+
+        if (!assetData.locations || !assetData.items) {
+            console.warn("Asset response missing locations or items:", Object.keys(assetData));
+        }
+
+        Object.assign(locations, assetData.locations || {});
+        Object.assign(items, assetData.items || {});
     }
 
     // Map to common format
